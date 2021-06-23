@@ -479,6 +479,9 @@ sbi_hart_switch_mode(unsigned long arg0, unsigned long arg1,
 	unsigned long val;
 #endif
 
+	sbi_printf("%s(): arg0=%#lx arg1=%#lx next_addr=%#lx next_mode=%#lx next_virt=%d\n",
+		__func__, arg0, arg1, next_addr, next_mode, next_virt);
+
 	switch (next_mode) {
 	case PRV_M:
 		break;
