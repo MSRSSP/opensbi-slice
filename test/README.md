@@ -1,7 +1,34 @@
-# Domain
-
-
+# Boot two domains
+1. Prepare two images (linux kernel and a helloworld) for post-sbi stage;
+Generate a helloworld
+```bash
+make
 ```
-${CROSS_COMPILE}gcc -g -nostdlib -nostdinc -e _start -Wl,--build-id=none -Wl,-Ttext=0x80100000 -DUART_SIFIVE -DUART_SIFIVE_BASE=0x10011000 hello_world.S -o hello_world.elf
-${CROSS_COMPILE}objcopy -O binary hello_world.elf hello_world.bin
+2. Prepare a device tree image
+```bash
+cd dtf
+make sifive_u.dtb
+cd ..
 ```
+
+3. Run
+```bash
+./run.sh
+```
+
+4. Confirm both domain running.
+You should see kernel booted in stdio and then check another domain through telnet client
+```bash
+telnet localhost 4321
+```
+Then you should see
+```
+Trying 127.0.0.1...                                                                                                     
+Connected to localhost.                                                                                                 
+Escape character is '^]'.                                                                                               
+Hello World !               
+Hello World !  
+Hello World !  
+...
+```
+
