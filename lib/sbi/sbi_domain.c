@@ -16,6 +16,8 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_string.h>
+#include <sbi/riscv_encoding.h>
+
 
 struct sbi_domain *hartid_to_domain_table[SBI_HARTMASK_MAX_BITS] = { 0 };
 struct sbi_domain *domidx_to_domain_table[SBI_DOMAIN_MAX_INDEX] = { 0 };
@@ -143,7 +145,7 @@ bool sbi_domain_check_addr(const struct sbi_domain *dom,
 /* Check if region complies with constraints */
 static bool is_region_valid(const struct sbi_domain_memregion *reg)
 {
-	if (reg->order < 3 || __riscv_xlen < reg->order)
+	if (reg->order < PMP_SHIFT || __riscv_xlen < reg->order)
 		return FALSE;
 
 	if (reg->base & (BIT(reg->order) - 1))

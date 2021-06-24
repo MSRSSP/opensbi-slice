@@ -11,6 +11,7 @@
 #include <libfdt.h>
 #include <libfdt_env.h>
 #include <sbi/sbi_domain.h>
+#include <sbi/riscv_encoding.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_scratch.h>
@@ -254,7 +255,7 @@ static int __fdt_parse_region(void *fdt, int domain_offset,
 	if (!val && len >= 4)
 		return SBI_EINVAL;
 	val32 = fdt32_to_cpu(*val);
-	if (val32 < 3 || __riscv_xlen < val32)
+	if (val32 < PMP_SHIFT || __riscv_xlen < val32)
 		return SBI_EINVAL;
 	region->order = val32;
 
