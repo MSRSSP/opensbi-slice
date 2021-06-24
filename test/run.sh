@@ -8,7 +8,7 @@ DTB_PATH=dtf/sifive_u.dtb
 
 qemu-system-riscv64 -M sifive_u -m 256M -display none \
 	-serial stdio -serial telnet:localhost:4321,server,nowait \
-	-dtb sifive_u.dtb -smp 5 \
+	-dtb ${DTB_PATH} -smp 5 \
 	-bios ${BIOS_PATH} \
 	-kernel ${KERNEL_PATH} \
 	-drive file=$RAM_DISK_PATH,format=raw,id=hd0 \

@@ -29,14 +29,6 @@
 				devices = <&uart1>;
 			};
 
-			uuart: uuart {
-				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x10010000>;
-				order = <12>;
-				mmio;
-				devices = <&uart0>;
-			};
-
 			allmem: allmem {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x0>;
@@ -46,7 +38,7 @@
 			tdomain: trusted-domain {
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu0>;
-				regions = <&uart0 0x0>;
+				regions = <&tmem 0x7>, <&tuart 0x7>;
 				boot-hart = <&cpu0>;
 				next-arg1 = <0x0 0x0>;
 				next-addr = <0x0 0x80100000>;
@@ -57,7 +49,7 @@
 			udomain: untrusted-domain {
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu1 &cpu2 &cpu3 &cpu4>;
-				regions = <&tmem 0x0>, <&tuart 0x0>;
+				regions = <&tmem 0x0>, <&tuart 0x0>, <&allmem 0x7>;
 			};
 		};
 	};
@@ -190,7 +182,7 @@
 		compatible = "simple-bus";
 		ranges;
 
-		uart0: serial@10010000 {
+		serial@10010000 {
 			interrupts = <0x04>;
 			interrupt-parent = <0x09>;
 			clocks = <0x08 0x03>;

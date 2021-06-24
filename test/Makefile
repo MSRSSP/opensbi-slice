@@ -1,4 +1,5 @@
 all:
+	make -C dtf 
 	./compile_hello.sh
 
 clean:
