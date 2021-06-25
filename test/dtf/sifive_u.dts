@@ -7,26 +7,43 @@
 	model = "SiFive HiFive Unleashed A00";
 
 	chosen {
-		linux,initrd-end = <0x8855d200>;
-		linux,initrd-start = <0x88200000>;
 		bootargs = "root=/dev/ram rw console=ttySIF0 earlycon=sbi";
 		stdout-path = "/soc/serial@10010000";
 
 		opensbi-domains {
 			compatible = "opensbi,domain,config";
-
-			tmem: tmem {
+			fwmem: fwmem {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x80100000>;
+				base = <0x0 0x80000000>;
 				order = <20>;
+			};
+
+			mem1: mem1 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x80000000>;
+				order = <27>;
+			};
+
+			mem2: mem2 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x88000000>;
+				order = <27>;
 			};
 
 			tuart: tuart {
 				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10010000>;
+				order = <12>;
+				mmio;
+				devices = <&uart_1>;
+			};
+
+			uuart: uuart {
+				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x10011000>;
 				order = <12>;
 				mmio;
-				devices = <&uart1>;
+				devices = <&uart_0>;
 			};
 
 			allmem: allmem {
@@ -38,19 +55,39 @@
 			tdomain: trusted-domain {
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu0>;
-				regions = <&tmem 0x7>, <&tuart 0x7>;
+				regions = <&allmem 0x7>;
 				boot-hart = <&cpu0>;
 				next-arg1 = <0x0 0x0>;
 				next-addr = <0x0 0x80100000>;
-				next-mode = <0x0>;
+				next-mode = <0x1>;
 				system-reset-allowed;
+				//stdout-path = "/soc/serial@10010000";
 			};
 
 			udomain: untrusted-domain {
 				compatible = "opensbi,domain,instance";
-				possible-harts = <&cpu1 &cpu2 &cpu3 &cpu4>;
-				regions = <&tmem 0x0>, <&tuart 0x0>, <&allmem 0x7>;
+				possible-harts = <&cpu1 &cpu2>;
+				boot-hart = <&cpu1>;
+				regions =  <&fwmem 0x7>, <&mem1 0x0>, <&allmem 0x7>;
+				next-arg1 = <0x0 0x8f200000>;
+				next-addr = <0x0 0x8d200000>;
+				next-mode = <0x1>;
+				system-reset-allowed;
+				stdout-path = "/soc/serial@10010000";
 			};
+
+			udomain2: untrusted-domain2 {
+				compatible = "opensbi,domain,instance";
+				possible-harts = <&cpu3 &cpu4>;
+				boot-hart = <&cpu3>;
+				regions = <&fwmem 0x7>, <&mem2 0x0>, <&allmem 0x7>;
+				next-arg1 = <0x0 0x82200000>;
+				next-addr = <0x0 0x80200000>;
+				next-mode = <0x1>;
+				system-reset-allowed;
+				stdout-path = "/soc/serial@10011000";
+			};
+
 		};
 	};
 
@@ -127,7 +164,7 @@
 			compatible = "riscv";
 			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv48";
-			opensbi-domain = <&udomain>;
+			opensbi-domain = <&udomain2>;
 
 			interrupt-controller {
 				#interrupt-cells = <0x01>;
@@ -144,7 +181,7 @@
 			compatible = "riscv";
 			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv48";
-			opensbi-domain = <&udomain>;
+			opensbi-domain = <&udomain2>;
 
 			interrupt-controller {
 				#interrupt-cells = <0x01>;
@@ -157,7 +194,7 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x00 0x80000000 0x00 0x10000000>;
+		reg = <0x00 0x80000000 0x00 0x40000000>;
 	};
 
 	rtcclk {
@@ -182,7 +219,7 @@
 		compatible = "simple-bus";
 		ranges;
 
-		serial@10010000 {
+		uart_0:serial@10010000 {
 			interrupts = <0x04>;
 			interrupt-parent = <0x09>;
 			clocks = <0x08 0x03>;
@@ -190,7 +227,7 @@
 			compatible = "sifive,uart0";
 		};
 
-		uart1: serial@10011000 {
+		uart_1: serial@10011000 {
 			interrupts = <0x05>;
 			interrupt-parent = <0x09>;
 			clocks = <0x08 0x03>;
