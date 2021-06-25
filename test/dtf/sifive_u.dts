@@ -21,13 +21,13 @@
 			mem1: mem1 {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x80000000>;
-				order = <27>;
+				order = <28>;
 			};
 
 			mem2: mem2 {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x88000000>;
-				order = <27>;
+				base = <0x0 0x90000000>;
+				order = <28>;
 			};
 
 			tuart: tuart {
@@ -69,8 +69,8 @@
 				possible-harts = <&cpu1 &cpu2>;
 				boot-hart = <&cpu1>;
 				regions =  <&fwmem 0x7>, <&mem1 0x0>, <&allmem 0x7>;
-				next-arg1 = <0x0 0x8f200000>;
-				next-addr = <0x0 0x8d200000>;
+				next-arg1 = <0x0 0x92200000>;
+				next-addr = <0x0 0x90200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10010000";
@@ -194,7 +194,7 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x00 0x80000000 0x00 0x40000000>;
+		reg = <0x00 0x80000000 0x00 0x20000000>;
 	};
 
 	rtcclk {
