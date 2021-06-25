@@ -19,7 +19,7 @@
  *
  * @param fdt: device tree blob
  */
-void fdt_cpu_fixup(void *fdt);
+void fdt_cpu_fixup(void *fdt, const void* dom);
 
 /**
  * Fix up the PLIC node in the device tree
@@ -44,7 +44,7 @@ void fdt_plic_fixup(void *fdt);
  * @param fdt: device tree blob
  * @return zero on success and -ve on failure
  */
-int fdt_reserved_memory_fixup(void *fdt);
+int fdt_reserved_memory_fixup(void *fdt, const void* dom);
 
 /**
  * Fix up the reserved memory subnodes in the device tree
@@ -71,7 +71,7 @@ int fdt_reserved_memory_nomap_fixup(void *fdt);
  *
  * @param fdt: device tree blob
  */
-void fdt_fixups(void *fdt);
+void fdt_fixups(void *fdt, const void* dom);
 
 #endif /* __FDT_FIXUP_H__ */
 

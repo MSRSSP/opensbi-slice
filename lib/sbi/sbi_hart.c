@@ -153,9 +153,9 @@ unsigned int sbi_hart_mhpm_count(struct sbi_scratch *scratch)
 	return hfeatures->mhpm_count;
 }
 
-unsigned int sbi_hart_pmp_count(struct sbi_scratch *scratch)
+unsigned int sbi_hart_pmp_count(const struct sbi_scratch *scratch)
 {
-	struct hart_features *hfeatures =
+	const struct hart_features *hfeatures =
 			sbi_scratch_offset_ptr(scratch, hart_features_offset);
 
 	return hfeatures->pmp_count;

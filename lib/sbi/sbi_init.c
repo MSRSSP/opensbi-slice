@@ -207,8 +207,10 @@ static void wake_coldboot_harts(struct sbi_scratch *scratch, u32 hartid)
 	/* Send an IPI to all HARTs waiting for coldboot */
 	for (int i = 0; i <= sbi_scratch_last_hartid(); i++) {
 		if ((i != hartid) &&
-		    sbi_hartmask_test_hart(i, &coldboot_wait_hmask))
+		    sbi_hartmask_test_hart(i, &coldboot_wait_hmask)){
+			sbi_printf("Send IPI: %d-> %d\n", hartid, i);
 			sbi_ipi_raw_send(i);
+		}
 	}
 
 	/* Release coldboot lock */
@@ -339,44 +341,61 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 	unsigned long *init_count;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 
-	if (!init_count_offset)
+	if (!init_count_offset){
 		sbi_hart_hang();
+	}
 
 	rc = sbi_hsm_init(scratch, hartid, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_hsm_init", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_platform_early_init(plat, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_platform_early_init", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_hart_init(scratch, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_hart_init", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_platform_irqchip_init(plat, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_platform_irqchip_init\n", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_ipi_init(scratch, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_ipi_init\n", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_tlb_init(scratch, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_tlb_init\n", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_timer_init(scratch, FALSE);
 	if (rc)
 		sbi_hart_hang();
 
 	rc = sbi_hart_pmp_configure(scratch);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_platform_final_init", hartid);
 		sbi_hart_hang();
+	}
 
 	rc = sbi_platform_final_init(plat, FALSE);
-	if (rc)
+	if (rc){
+		sbi_printf("hart %d hang at sbi_platform_final_init", hartid);
 		sbi_hart_hang();
+	}
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
@@ -408,8 +427,10 @@ static void __noreturn init_warmboot(struct sbi_scratch *scratch, u32 hartid)
 	wait_for_coldboot(scratch, hartid);
 
 	hstate = sbi_hsm_hart_get_state(sbi_domain_thishart_ptr(), hartid);
-	if (hstate < 0)
+	if (hstate < 0){
+		sbi_printf("hart %d hang at sbi_hsm_hart_get_state\n", hartid);
 		sbi_hart_hang();
+	}
 
 	if (hstate == SBI_HSM_STATE_SUSPENDED)
 		init_warm_resume(scratch);

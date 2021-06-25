@@ -56,7 +56,7 @@ int fdt_iterate_each_memregion(void *fdt, int domain_offset, void *opaque,
  *
  * @param fdt device tree blob
  */
-void fdt_domain_fixup(void *fdt);
+void fdt_domain_fixup(void *fdt,  const void* dom);
 
 /**
  * Populate domains from device tree

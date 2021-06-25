@@ -101,8 +101,9 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 
 	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_START_PENDING,
 				  SBI_HSM_STATE_STARTED);
-	if (oldstate != SBI_HSM_STATE_START_PENDING)
+	if (oldstate != SBI_HSM_STATE_START_PENDING){
 		sbi_hart_hang();
+	}
 }
 
 static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
@@ -117,9 +118,15 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 	csr_set(CSR_MIE, MIP_MSIP);
 
 	/* Wait for hart_add call*/
+	bool reported=false;
 	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
+		if(!reported){
+			sbi_printf("hart %d need to wait for SBI_HSM_STATE_START_PENDING", hartid);
+			reported=true;
+		}
 		wfi();
 	};
+	sbi_printf("%d: complte the wait for SBI_HSM_STATE_START_PENDING\n", hartid);
 
 	/* Restore MIE CSR */
 	csr_write(CSR_MIE, saved_mie);
@@ -203,6 +210,7 @@ int sbi_hsm_init(struct sbi_scratch *scratch, u32 hartid, bool cold_boot)
 				    SBI_HSM_STATE_STOPPED);
 		}
 	} else {
+		sbi_printf("hart %d: sbi_hsm_hart_wait\n",hartid);
 		sbi_hsm_hart_wait(scratch, hartid);
 	}
 

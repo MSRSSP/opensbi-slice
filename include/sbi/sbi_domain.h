@@ -76,6 +76,8 @@ struct sbi_domain {
 	unsigned long next_addr;
 	/** Privilege mode of next booting stage for this domain */
 	unsigned long next_mode;
+	/** default stdio **/
+	char stdout_path[64];
 	/** Is domain allowed to reset the system */
 	bool system_reset_allowed;
 };

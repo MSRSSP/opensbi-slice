@@ -17,13 +17,13 @@
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 
-void fdt_cpu_fixup(void *fdt)
+void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 {
-	struct sbi_domain *dom = sbi_domain_thishart_ptr();
+	const struct sbi_domain *dom = dom_ptr;
 	int err, cpu_offset, cpus_offset, len;
 	const char *mmu_type;
 	u32 hartid;
-
+	sbi_printf("fdt_cpu_fixup: fdt_ptr=%lx",(long) fdt);
 	err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 32);
 	if (err < 0)
 		return;
@@ -45,10 +45,20 @@ void fdt_cpu_fixup(void *fdt)
 
 		mmu_type = fdt_getprop(fdt, cpu_offset, "mmu-type", &len);
 		if (!sbi_domain_is_assigned_hart(dom, hartid) ||
-		    !mmu_type || !len)
+		    !mmu_type || !len){
 			fdt_setprop_string(fdt, cpu_offset, "status",
 					   "disabled");
+			//fdt_nop_node(fdt, cpu_offset);
+			}
 	}
+	
+	/* Fix up UART*/
+	int coff = fdt_path_offset(fdt, "/chosen");
+	if(coff < 0)
+		return;
+	if (sbi_strlen(dom->stdout_path))
+		fdt_setprop_string(fdt, coff, "stdout-path", dom->stdout_path);
+	sbi_printf("hart%d: Fix UART: %s\n", current_hartid(), dom->stdout_path);
 }
 
 void fdt_plic_fixup(void *fdt)
@@ -153,11 +163,11 @@ static int fdt_resv_memory_update_node(void *fdt, unsigned long addr,
  * Some additional memory spaces may be protected by platform codes via PMP as
  * well, and corresponding child nodes will be inserted.
  */
-int fdt_reserved_memory_fixup(void *fdt)
+int fdt_reserved_memory_fixup(void *fdt,  const void *dom_ptr)
 {
 	struct sbi_domain_memregion *reg;
-	struct sbi_domain *dom = sbi_domain_thishart_ptr();
-	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+	const struct sbi_domain *dom = dom_ptr;
+	const struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 	unsigned long addr, size;
 	int err, parent, i;
 	int na = fdt_address_cells(fdt, 0);
@@ -258,11 +268,11 @@ int fdt_reserved_memory_nomap_fixup(void *fdt)
 	return 0;
 }
 
-void fdt_fixups(void *fdt)
+void fdt_fixups(void *fdt, const void * dom)
 {
 	fdt_plic_fixup(fdt);
 
-	fdt_reserved_memory_fixup(fdt);
+	fdt_reserved_memory_fixup(fdt, dom);
 }
 
 

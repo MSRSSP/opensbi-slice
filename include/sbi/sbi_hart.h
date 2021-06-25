@@ -39,7 +39,7 @@ static inline ulong sbi_hart_expected_trap_addr(void)
 unsigned int sbi_hart_mhpm_count(struct sbi_scratch *scratch);
 void sbi_hart_delegation_dump(struct sbi_scratch *scratch,
 			      const char *prefix, const char *suffix);
-unsigned int sbi_hart_pmp_count(struct sbi_scratch *scratch);
+unsigned int sbi_hart_pmp_count(const struct sbi_scratch *scratch);
 unsigned long sbi_hart_pmp_granularity(struct sbi_scratch *scratch);
 unsigned int sbi_hart_pmp_addrbits(struct sbi_scratch *scratch);
 int sbi_hart_pmp_configure(struct sbi_scratch *scratch);

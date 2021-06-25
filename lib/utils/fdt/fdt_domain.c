@@ -150,11 +150,11 @@ static int __fixup_disable_devices(void *fdt, int doff, int roff,
 	return 0;
 }
 
-void fdt_domain_fixup(void *fdt)
+void fdt_domain_fixup(void *fdt, const void* dom_ptr )
 {
 	u32 i, dcount;
 	int err, poffset, doffset;
-	struct sbi_domain *dom = sbi_domain_thishart_ptr();
+	const struct sbi_domain *dom = dom_ptr;
 	struct __fixup_find_domain_offset_info fdo;
 
 	/* Remove the domain assignment DT property from CPU DT nodes */
@@ -404,6 +404,13 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 	cpus_offset = fdt_path_offset(fdt, "/cpus");
 	if (cpus_offset < 0)
 		return cpus_offset;
+
+	/*Read uart address*/
+	val64 = 0;
+	val = fdt_getprop(fdt, domain_offset, "stdout-path", &len);
+	if (val){
+		sbi_memcpy(dom->stdout_path, val, len);
+	}
 
 	/* HART to domain assignment mask based on CPU DT nodes */
 	sbi_hartmask_clear_all(&assign_mask);

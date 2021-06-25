@@ -13,6 +13,8 @@
 #include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_string.h>
+#include <sbi/sbi_console.h>
+#include <sbi/sbi_domain.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
@@ -124,7 +126,7 @@ static int generic_early_init(bool cold_boot)
 		if (rc)
 			return rc;
 	}
-
+	
 	if (!cold_boot)
 		return 0;
 
@@ -142,19 +144,41 @@ static int generic_final_init(bool cold_boot)
 			return rc;
 	}
 
-	if (!cold_boot)
+	if (!cold_boot){
 		return 0;
+	}
 
-	fdt = sbi_scratch_thishart_arg1_ptr();
+	int index;
+	const struct sbi_domain * dom;
+	sbi_domain_for_each(index, dom){
+		if(index==0){
+			continue;
+		}
+		fdt = (void*)dom->next_arg1;
+		sbi_printf("hart %d:domain %d, Fixing fdt @ %lx\n",  current_hartid(), index, (long)fdt);
 
-	fdt_cpu_fixup(fdt);
-	fdt_fixups(fdt);
-	fdt_domain_fixup(fdt);
+		int k=0;
+		bool done=false;
+		for(k=1;k< index; ++k){
+			struct sbi_domain* dom2 = sbi_index_to_domain(k);
+			if ((long)fdt == dom2->next_arg1){
+				sbi_printf("Skip fix @ %lx, due to dom %d == %lx", (long) fdt, k,dom2->next_arg1);
+				done = true;
+			}
+		} 
+		if(done||fdt==0){
+			sbi_printf("Skip fix @ %lx", (long) fdt);
+			continue;
+		}
 
-	if (generic_plat && generic_plat->fdt_fixup) {
-		rc = generic_plat->fdt_fixup(fdt, generic_plat_match);
-		if (rc)
+		fdt_cpu_fixup(fdt, dom);
+		fdt_fixups(fdt, dom);
+		fdt_domain_fixup(fdt, dom);
+		if (generic_plat && generic_plat->fdt_fixup) {
+			rc = generic_plat->fdt_fixup(fdt, generic_plat_match);
+			if (rc)
 			return rc;
+		}
 	}
 
 	return 0;
