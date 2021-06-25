@@ -1,1 +1,1 @@
-make CROSS_COMPILE=riscv64-unknown-linux-gnu- FW_PAYLOAD_PATH=${TOP}/linux2/arch/riscv/boot/Image FW_PAYLOAD2_PATH=${TOP}/opensbi/test/hello_world.bin PLATFORM="generic" -j$(nproc)
+make CROSS_COMPILE=riscv64-unknown-linux-gnu- PLATFORM="generic" -j$(nproc)

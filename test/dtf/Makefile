@@ -1,4 +1,4 @@
-default: sifive_u.dtb
+default: sifive_kernel.dtb sifive_hello.dtb
 help:
 	echo "# Make sure your have <target>.dts;\nmake <target>.dtb;"
 

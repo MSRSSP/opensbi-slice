@@ -1,27 +1,24 @@
 # Boot two domains
-1. Prepare two images (linux kernel and a helloworld) for post-sbi stage;
-Generate a helloworld
+
+## Build device trees and create ramdisk
 ```bash
 make
 ```
-2. Prepare a device tree image
+
+## Tutorial 1: Boot one kernel + one hello world
+1. Run
 ```bash
-cd dtf
-make sifive_u.dtb
-cd ..
+make
+./runhello.sh
 ```
 
-3. Run
-```bash
-./run.sh
-```
-
-4. Confirm both domain running.
-You should see kernel booted in stdio and then check another domain through telnet client
+2. lauch a second terminal;
 ```bash
 telnet localhost 4321
 ```
-Then you should see
+After that cmd, you should see kernel booted in first terminal and helloworld in second terminal;
+
+In second term:
 ```
 Trying 127.0.0.1...                                                                                                     
 Connected to localhost.                                                                                                 
@@ -32,3 +29,26 @@ Hello World !
 ...
 ```
 
+## Tutorial 2: Boot two kernel in two partitions
+**You must build latest `opensbi` in `zz` branch (after commit: 128ab43e55d1e4e11bcd8c29261e3131226b637e).**
+
+0. build latest opensbi
+```
+cd ../
+./make.sh
+```
+
+1. Run: change qemu(`QEMU_PATH`), opensbi(`BIOS_PATH`), and kernel(`KERNEL_PATH`) path based on your environment
+My kernel is built based on [boot-customized-riscv-linux-kernel-using-qemu](https://github.com/MSRSSP/hardware-partition-docs/blob/main/boot-tutorial.md#option-2-boot-customized-riscv-linux-kernel-using-qemu)
+
+```bash
+cd test
+make
+./runkernel.sh
+```
+
+2. lauch a second terminal;
+```bash
+telnet localhost 4321
+```
+After that cmd, you should see kernel booted in both terminal (a tiny delay in second term);
