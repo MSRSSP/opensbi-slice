@@ -30,7 +30,15 @@
 				order = <28>;
 			};
 
-			tuart: tuart {
+			uuart_1: uuart_1 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10011000>;
+				order = <12>;
+				mmio;
+				devices = <&uart_0>;
+			};
+
+			uuart_2: uuart_2 {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x10010000>;
 				order = <12>;
@@ -38,12 +46,17 @@
 				devices = <&uart_1>;
 			};
 
-			uuart: uuart {
+			uart_mem: uart_mem {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x10011000>;
-				order = <12>;
+				base = <0x0 0x10010000>;
+				order = <16>;
 				mmio;
-				devices = <&uart_0>;
+			};
+
+			lower_mem: lower_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x0>;
+				order = <31>;
 			};
 
 			allmem: allmem {
@@ -68,9 +81,9 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu1 &cpu2>;
 				boot-hart = <&cpu1>;
-				regions =  <&fwmem 0x7>, <&mem1 0x0>, <&allmem 0x7>;
-				next-arg1 = <0x0 0x92200000>;
-				next-addr = <0x0 0x90200000>;
+				regions =   <&mem1 0x7>, <&mem2 0x0>, <&lower_mem 0x7>;
+				next-arg1 = <0x0 0x82200000>;
+				next-addr = <0x0 0x80200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10010000";
@@ -80,9 +93,9 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu3 &cpu4>;
 				boot-hart = <&cpu3>;
-				regions = <&fwmem 0x7>, <&mem2 0x0>, <&allmem 0x7>;
-				next-arg1 = <0x0 0x82200000>;
-				next-addr = <0x0 0x80200000>;
+				regions = <&lower_mem 0x7>, <&fwmem 0x7>, <&mem2 0x7>;
+				next-arg1 = <0x0 0x92200000>;
+				next-addr = <0x0 0x90200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10011000";

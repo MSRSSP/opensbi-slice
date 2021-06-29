@@ -6,4 +6,4 @@ help:
 	dtc -I dts -O dtb $<  > $@
 
 clean:
-	rm *.dtb
+	rm -rf *.dtb

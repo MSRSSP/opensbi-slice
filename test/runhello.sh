@@ -2,7 +2,7 @@ set -x
 set -e
 BIOS_PATH=${TOP}/opensbi/build/platform/generic/firmware/fw_jump.bin
 KERNEL_PATH=${TOP}/linux/arch/riscv/boot/Image
-RAM_DISK_PATH=./ramdisk.bin
+RAM_DISK_PATH=./ramdisk.ext4
 DTB_PATH=dtf/sifive_hello.dtb
 QEMU=${TOP}/qemu/build/qemu-system-riscv64
 SECOND_IMAGE=./hello_world.bin
