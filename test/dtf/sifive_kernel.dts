@@ -32,7 +32,7 @@
 
 			uuart_1: uuart_1 {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x10011000>;
+				base = <0x0 0x10010000>;
 				order = <12>;
 				mmio;
 				devices = <&uart_0>;
@@ -40,23 +40,56 @@
 
 			uuart_2: uuart_2 {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x10010000>;
+				base = <0x0 0x10011000>;
 				order = <12>;
 				mmio;
 				devices = <&uart_1>;
 			};
 
-			uart_mem: uart_mem {
+			clint_mem: clint_mem {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x10010000>;
+				base = <0x0 0x2000000>;
 				order = <16>;
-				mmio;
 			};
-
-			lower_mem: lower_mem {
+			clock_mem: clock_mem {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x0>;
-				order = <31>;
+				base = <0x0 0x10000000>;
+				order = <12>;
+			};
+			cache_ctl_mem:cache_ctl_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x2010000>;
+				order = <12>;
+			};
+			dma_mem:dma_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x3000000>;
+				order=<5>;
+			};
+			plic_mem: plic_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x0c000000>;
+				order = <24>;
+			};
+			gpio_mem: gpio_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10060000>;
+				order = <12>;		
+			};
+			otp_mem:otp_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10070000>;
+				order = <12>;
+			};
+			net_mem:net_mem {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10090000>;
+				order = <13>;
+			};
+			net_mem2:net_mem2 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x100a0000>;
+				order = <8>;
 			};
 
 			allmem: allmem {
@@ -81,7 +114,7 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu1 &cpu2>;
 				boot-hart = <&cpu1>;
-				regions =   <&mem1 0x7>, <&mem2 0x0>, <&lower_mem 0x7>;
+				regions =  <&mem1 0x7>, <&mem2 0x0>, <&clint_mem 0x0>, <&clock_mem 0x3>, <&cache_ctl_mem 0x0>, <&otp_mem 0x0>, <&gpio_mem 0x3>, <&plic_mem 0x3>, <&dma_mem 0x0>, <&net_mem 0x3>, <&net_mem2 0x3>, <&uuart_1 0x7>;
 				next-arg1 = <0x0 0x82200000>;
 				next-addr = <0x0 0x80200000>;
 				next-mode = <0x1>;
@@ -93,7 +126,7 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu3 &cpu4>;
 				boot-hart = <&cpu3>;
-				regions = <&lower_mem 0x7>, <&fwmem 0x7>, <&mem2 0x7>;
+				regions = <&fwmem 0x7>, <&mem2 0x7>, <&clock_mem 0x3>,  <&gpio_mem 0x3>, <&plic_mem 0x3>,  <&net_mem 0x3>, <&uuart_2 0x3>, <&clint_mem 0x0>, <&cache_ctl_mem 0x0>, <&otp_mem 0x0>, <&dma_mem 0x0>, <&net_mem2 0x0>;
 				next-arg1 = <0x0 0x92200000>;
 				next-addr = <0x0 0x90200000>;
 				next-mode = <0x1>;
@@ -319,13 +352,17 @@
 			phandle = <0x08>;
 		};
 
+		
 		otp@10070000 {
 			compatible = "sifive,fu540-c000-otp";
 			reg = <0x00 0x10070000 0x00 0x1000>;
 			fuse-count = <0x1000>;
 		};
 
+		// fdt_parse_clint_node.
+		// lib/utils/sys/clint.c includes hardcoded offset for per-cpu msip, per-cpu timecmp, and shared time.
 		clint@2000000 {
+			//sbi/riscv_encoding.h cpu0 soft cpu0 time cpu1 soft cpu1 time cpu2 soft cpu2 time ...
 			interrupts-extended = <0x07 0x03 0x07 0x07 0x06 0x03 0x06 0x07 0x05 0x03 0x05 0x07 0x04 0x03 0x04 0x07 0x03 0x03 0x03 0x07>;
 			reg = <0x00 0x2000000 0x00 0x10000>;
 			compatible = "riscv,clint0";
