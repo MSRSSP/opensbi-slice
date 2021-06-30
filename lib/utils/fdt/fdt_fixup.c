@@ -16,6 +16,7 @@
 #include <sbi/sbi_string.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
+#include <sbi_utils/serial/fdt_serial.h>
 
 void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 {
@@ -51,14 +52,7 @@ void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 			//fdt_nop_node(fdt, cpu_offset);
 			}
 	}
-	
-	/* Fix up UART*/
-	int coff = fdt_path_offset(fdt, "/chosen");
-	if(coff < 0)
-		return;
-	if (sbi_strlen(dom->stdout_path))
-		fdt_setprop_string(fdt, coff, "stdout-path", dom->stdout_path);
-	sbi_printf("hart%d: Fix UART: %s\n", current_hartid(), dom->stdout_path);
+	fdt_serial_fixup(fdt, dom_ptr);
 }
 
 void fdt_plic_fixup(void *fdt)

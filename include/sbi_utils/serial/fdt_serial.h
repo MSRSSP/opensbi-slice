@@ -18,5 +18,5 @@ struct fdt_serial {
 };
 
 int fdt_serial_init(void);
-
+void fdt_serial_fixup(void * fdt, const void *dom_ptr); 
 #endif
