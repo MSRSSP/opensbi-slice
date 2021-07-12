@@ -9,7 +9,7 @@ DTB_PATH=dtf/sifive_kernel.dtb
 SECOND_IMAGE=${KERNEL_PATH}
 DEBUG_OPT=""
 DEBUG_OPT+="-monitor telnet:127.0.0.1:4322,server,nowait "
-DEBUG_OPT+="--trace memory_region_ops_*"
+#DEBUG_OPT+="--trace memory_region_ops_*"
 ${QEMU} ${DEBUG_OPT} -M sifive_u -m 512M -display none \
 	-serial stdio -serial telnet:localhost:4321,server,nowait  \
 	-dtb ${DTB_PATH} -smp 5 \

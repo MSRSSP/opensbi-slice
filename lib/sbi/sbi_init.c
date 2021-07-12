@@ -7,6 +7,7 @@
  *   Anup Patel <anup.patel@wdc.com>
  */
 
+#include <sbi/d.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_atomic.h>
 #include <sbi/riscv_barrier.h>
@@ -303,6 +304,13 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
+	rc = d_create_domain_fdt(sbi_domain_thishart_ptr());
+	if (rc) {
+		d_printf("%s: d_create_domain_fdt (error %d)\n",
+			   __func__, rc);
+		sbi_hart_hang();
+	}
+
 	sbi_boot_print_domains(scratch);
 
 	rc = sbi_hart_pmp_configure(scratch);
@@ -360,6 +368,13 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 	rc = sbi_hart_init(scratch, FALSE);
 	if (rc){
 		sbi_printf("hart %d hang at sbi_hart_init", hartid);
+		sbi_hart_hang();
+	}
+
+	rc = d_create_domain_fdt(sbi_domain_thishart_ptr());
+	if (rc) {
+		d_printf("%s: d_create_domain_fdt (error %d)\n",
+			   __func__, rc);
 		sbi_hart_hang();
 	}
 

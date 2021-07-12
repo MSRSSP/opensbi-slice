@@ -148,39 +148,9 @@ static int generic_final_init(bool cold_boot)
 		return 0;
 	}
 
-	int index;
-	const struct sbi_domain * dom;
-	sbi_domain_for_each(index, dom){
-		if(index==0){
-			continue;
-		}
-		fdt = (void*)dom->next_arg1;
-		sbi_printf("hart %d:domain %d, Fixing fdt @ %lx\n",  current_hartid(), index, (long)fdt);
-
-		int k=0;
-		bool done=false;
-		for(k=1;k< index; ++k){
-			struct sbi_domain* dom2 = sbi_index_to_domain(k);
-			if ((long)fdt == dom2->next_arg1){
-				sbi_printf("Skip fix @ %lx, due to dom %d == %lx", (long) fdt, k,dom2->next_arg1);
-				done = true;
-			}
-		} 
-		if(done||fdt==0){
-			sbi_printf("Skip fix @ %lx", (long) fdt);
-			continue;
-		}
-
-		fdt_cpu_fixup(fdt, dom);
-		fdt_fixups(fdt, dom);
-		fdt_domain_fixup(fdt, dom);
-		if (generic_plat && generic_plat->fdt_fixup) {
-			rc = generic_plat->fdt_fixup(fdt, generic_plat_match);
-			if (rc)
-			return rc;
-		}
-	}
-
+	fdt = sbi_scratch_thishart_arg1_ptr();
+	void* dom_ptr = sbi_domain_thishart_ptr();
+	fdt_domain_fixup(fdt, dom_ptr);
 	return 0;
 }
 
