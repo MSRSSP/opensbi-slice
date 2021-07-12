@@ -49,7 +49,6 @@ void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 		    !mmu_type || !len){
 			fdt_setprop_string(fdt, cpu_offset, "status",
 					   "disabled");
-			//fdt_nop_node(fdt, cpu_offset);
 			}
 	}
 	fdt_serial_fixup(fdt, dom_ptr);

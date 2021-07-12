@@ -1,0 +1,205 @@
+/dts-v1/;
+
+/ {
+	#address-cells = <0x2>;
+	#size-cells = <0x2>;
+	compatible = "sifive,hifive-unleashed-a00";
+	model = "SiFive HiFive Unleashed A00";
+
+	chosen {
+		bootargs = [00];
+		stdout-path = "/soc/serial@10010000";
+	};
+
+	aliases {
+		serial0 = "/soc/serial@10010000";
+		ethernet0 = "/soc/ethernet@10090000";
+	};
+
+	cpus {
+		#address-cells = <0x1>;
+		#size-cells = <0x0>;
+		timebase-frequency = <0x989680>;
+
+		cpu@0 {
+			device_type = "cpu";
+			reg = <0x0>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imacu";
+
+			interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+				phandle = <0x7>;
+			};
+		};
+
+		cpu@1 {
+			device_type = "cpu";
+			reg = <0x1>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv48";
+
+			interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+				phandle = <0x6>;
+			};
+		};
+
+		cpu@2 {
+			device_type = "cpu";
+			reg = <0x2>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv48";
+
+			interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+				phandle = <0x5>;
+			};
+		};
+
+		cpu@3 {
+			device_type = "cpu";
+			reg = <0x3>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv48";
+
+			interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+				phandle = <0x4>;
+			};
+		};
+
+		cpu@4 {
+			device_type = "cpu";
+			reg = <0x4>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv48";
+
+			interrupt-controller {
+				#interrupt-cells = <0x1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+				phandle = <0x3>;
+			};
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x8000000>;
+	};
+
+	rtcclk {
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+		clock-frequency = <0xf4240>;
+		clock-output-names = "rtcclk";
+		phandle = <0x2>;
+	};
+
+	hfclk {
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+		clock-frequency = <0x1fca055>;
+		clock-output-names = "hfclk";
+		phandle = <0x1>;
+	};
+	
+	poweroff {
+		value = <0x5555>;
+		offset = <0x0>;
+		regmap = <0xc>;
+		compatible = "syscon-poweroff";
+	};
+
+	reboot {
+		value = <0x7777>;
+		offset = <0x0>;
+		regmap = <0xc>;
+		compatible = "syscon-reboot";
+	};
+
+	test@100000 {
+		phandle = <0xc>;
+		reg = <0x0 0x100000 0x0 0x1000>;
+		compatible = "sifive,test1", "sifive,test0", "syscon";
+	};
+
+	soc {
+		#address-cells = <0x2>;
+		#size-cells = <0x2>;
+		compatible = "simple-bus";
+		ranges;
+
+		serial@10010000 {
+			interrupts = <0x4>;
+			interrupt-parent = <0x9>;
+			clocks = <0x8 0x3>;
+			reg = <0x0 0x10010000 0x0 0x1000>;
+			compatible = "sifive,uart0";
+		};
+
+		
+
+		ethernet@10090000 {
+			#size-cells = <0x0>;
+			#address-cells = <0x1>;
+			local-mac-address = [52 54 00 12 34 56];
+			clock-names = "pclk", "hclk";
+			clocks = <0x8 0x2 0x8 0x2>;
+			interrupts = <0x35>;
+			interrupt-parent = <0x9>;
+			phy-handle = <0xa>;
+			phy-mode = "gmii";
+			reg-names = "control";
+			reg = <0x0 0x10090000 0x0 0x2000 0x0 0x100a0000 0x0 0x1000>;
+			compatible = "sifive,fu540-c000-gem";
+
+			ethernet-phy@0 {
+				reg = <0x0>;
+				phandle = <0xa>;
+			};
+		};
+
+		interrupt-controller@c000000 {
+			phandle = <0x9>;
+			riscv,ndev = <0x35>;
+			reg = <0x0 0xc000000 0x0 0x4000000>;
+			interrupts-extended = <0x7 0xb 0x6 0xb 0x6 0x9 0x5 0xb 0x5 0x9 0x4 0xb 0x4 0x9 0x3 0xb 0x3 0x9>;
+			interrupt-controller;
+			compatible = "riscv,plic0";
+			#interrupt-cells = <0x1>;
+		};
+
+		clock-controller@10000000 {
+			compatible = "sifive,fu540-c000-prci";
+			reg = <0x0 0x10000000 0x0 0x1000>;
+			clocks = <0x1 0x2>;
+			#clock-cells = <0x1>;
+			phandle = <0x8>;
+		};
+
+		clint@2000000 {
+			interrupts-extended = <0x7 0x3 0x7 0x7 0x6 0x3 0x6 0x7 0x5 0x3 0x5 0x7 0x4 0x3 0x4 0x7 0x3 0x3 0x3 0x7>;
+			reg = <0x0 0x2000000 0x0 0x10000>;
+			compatible = "riscv,clint0";
+		};
+	};
+};

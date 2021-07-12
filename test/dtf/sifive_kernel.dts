@@ -12,6 +12,11 @@
 
 		opensbi-domains {
 			compatible = "opensbi,domain,config";
+			reset: reset {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x100000>;
+				order = <12>;
+			};
 			fwmem: fwmem {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x80000000>;
@@ -109,7 +114,7 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu1 &cpu2>;
 				boot-hart = <&cpu1>;
-				regions =  <&mem1 0x7>, <&mem2 0x0>, <&clock_mem 0x3>, <&plic_mem 0x3>,<&net_mem 0x3>, <&uuart_1 0x7>;
+				regions =  <&mem1 0x7>, <&mem2 0x0>, <&clock_mem 0x3>, <&plic_mem 0x3>,<&net_mem 0x3>, <&uuart_1 0x7>, <&reset 0x7>;
 				next-arg1 = <0x0 0x83200000>;
 				next-addr = <0x0 0x80200000>;
 				next-mode = <0x1>;
@@ -121,7 +126,7 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu3 &cpu4>;
 				boot-hart = <&cpu3>;
-				regions = <&fwmem 0x7>, <&mem2 0x7>, <&clock_mem 0x3>, <&plic_mem 0x3>,  <&net_mem 0x3>, <&uuart_2 0x3>;
+				regions = <&fwmem 0x7>, <&mem2 0x7>, <&clock_mem 0x3>, <&plic_mem 0x3>,  <&net_mem 0x3>, <&uuart_2 0x3>, <&reset 0x7>;
 				next-arg1 = <0x0 0x92200000>;
 				next-addr = <0x0 0x90200000>;
 				next-mode = <0x1>;
@@ -231,6 +236,26 @@
 	memory@80000000 {
 		device_type = "memory";
 		reg = <0x00 0x80000000 0x00 0x20000000>;
+	};
+
+	poweroff {
+		value = <0x5555>;
+		offset = <0x0>;
+		regmap = <0xc>;
+		compatible = "syscon-poweroff";
+	};
+
+	reboot {
+		value = <0x7777>;
+		offset = <0x0>;
+		regmap = <0xc>;
+		compatible = "syscon-reboot";
+	};
+
+	test@100000 {
+		phandle = <0xc>;
+		reg = <0x0 0x100000 0x0 0x1000>;
+		compatible = "sifive,test1", "sifive,test0", "syscon";
 	};
 
 	rtcclk {
