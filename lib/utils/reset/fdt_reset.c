@@ -15,8 +15,10 @@
 extern struct fdt_reset fdt_reset_sifive;
 extern struct fdt_reset fdt_reset_htif;
 extern struct fdt_reset fdt_reset_thead;
+extern struct fdt_reset fdt_reset_domain;
 
 static struct fdt_reset *reset_drivers[] = {
+	&fdt_reset_domain,
 	&fdt_reset_sifive,
 	&fdt_reset_htif,
 	&fdt_reset_thead,
@@ -24,12 +26,11 @@ static struct fdt_reset *reset_drivers[] = {
 
 static struct fdt_reset *current_driver = NULL;
 
-int fdt_reset_init(void)
+int d_fdt_reset_init(void* fdt)
 {
 	int pos, noff, rc;
 	struct fdt_reset *drv;
 	const struct fdt_match *match;
-	void *fdt = sbi_scratch_thishart_arg1_ptr();
 
 	for (pos = 0; pos < array_size(reset_drivers); pos++) {
 		drv = reset_drivers[pos];
@@ -50,4 +51,8 @@ int fdt_reset_init(void)
 	}
 
 	return 0;
+}
+
+int fdt_reset_init(void){
+	return d_fdt_reset_init(sbi_scratch_thishart_arg1_ptr());
 }

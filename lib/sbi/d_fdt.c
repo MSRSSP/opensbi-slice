@@ -152,7 +152,7 @@ int d_create_domain_fdt(const void * dom_ptr){
     fdt_device_fixup(fdt, dom_ptr);
     fdt_fixups(fdt, dom_ptr);
     fdt_domain_fixup(fdt, dom_ptr);
-    d_fdt_reset_init(fdt);
+    //d_fdt_reset_init(fdt);
     //d_remove_useless_cpus(fdt, dom_ptr);
     //print_fdt(fdt);
     return 0;

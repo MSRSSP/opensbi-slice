@@ -19,4 +19,6 @@ struct fdt_reset {
 
 int fdt_reset_init(void);
 
+int d_fdt_reset_init(void* fdt);
+
 #endif
