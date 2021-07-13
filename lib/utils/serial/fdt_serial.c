@@ -48,7 +48,7 @@ void fdt_serial_fixup(void * fdt, const void *dom_ptr){
 	const struct sbi_domain *dom = dom_ptr;
 	const struct fdt_match *match;
  	struct fdt_serial *drv;
-	int pos, selected_noff=-1, noff = -1, coff;
+	int pos, selected_noff=-1, noff = -1, prev_noff, coff;
 	coff = fdt_path_offset(fdt, "/chosen");
 	if(coff < 0)
 		return;
@@ -70,12 +70,14 @@ void fdt_serial_fixup(void * fdt, const void *dom_ptr){
 		drv = serial_drivers[pos];
 		noff=-1;
 		while (true){
+			prev_noff = noff;
 			noff = fdt_find_match(fdt, noff, drv->match_table, &match);
 			if (noff < 0)
 				break;
 			if(selected_noff!=noff)
 			{// Invalidate uart not belonging to this domain;
 				fdt_nop_node(fdt, noff);
+				noff = prev_noff;
 			}
 		}
 	}
