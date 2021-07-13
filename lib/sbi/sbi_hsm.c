@@ -24,7 +24,7 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_timer.h>
-#include <sbi/sbi_console.h>
+#include <sbi/d.h>
 
 static const struct sbi_hsm_device *hsm_dev = NULL;
 static unsigned long hart_data_offset;
@@ -101,7 +101,8 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 
 	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_START_PENDING,
 				  SBI_HSM_STATE_STARTED);
-	if (oldstate != SBI_HSM_STATE_START_PENDING){
+	if (oldstate != SBI_HSM_STATE_START_PENDING && oldstate != SBI_HSM_STATE_STARTED){
+		d_printf("%s: oldstate= %d hang\n", __func__, oldstate);
 		sbi_hart_hang();
 	}
 }
@@ -119,9 +120,9 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 
 	/* Wait for hart_add call*/
 	bool reported=false;
-	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
+	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING && atomic_read(&hdata->state) != SBI_HSM_STATE_STARTED) {
 		if(!reported){
-			sbi_printf("hart %d need to wait for SBI_HSM_STATE_START_PENDING", hartid);
+			sbi_printf("hart %d state =%d to wait for SBI_HSM_STATE_START_PENDING\n", hartid, (int)atomic_read(&hdata->state));
 			reported=true;
 		}
 		wfi();
