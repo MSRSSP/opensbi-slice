@@ -10,7 +10,7 @@ SECOND_IMAGE=${KERNEL_PATH}
 DEBUG_OPT=""
 DEBUG_OPT+="-monitor telnet:127.0.0.1:4322,server,nowait "
 #DEBUG_OPT+="--trace memory_region_ops_*"
-DEBUG_OPT+="-d opensbi -D log.txt"
+#DEBUG_OPT+="-d opensbi -D log.txt -s" # localhost:4321 for gdb debug
 ${QEMU} ${DEBUG_OPT} -M sifive_u -m 1G -display none \
 	-serial stdio -serial telnet:localhost:4321,server  \
 	-dtb ${DTB_PATH} -smp 5 \
