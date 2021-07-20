@@ -101,7 +101,7 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 
 	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_START_PENDING,
 				  SBI_HSM_STATE_STARTED);
-	if (oldstate != SBI_HSM_STATE_START_PENDING && oldstate != SBI_HSM_STATE_STARTED){
+	if (oldstate != SBI_HSM_STATE_START_PENDING){
 		d_printf("%s: oldstate= %d hang\n", __func__, oldstate);
 		sbi_hart_hang();
 	}
@@ -120,11 +120,12 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 
 	/* Wait for hart_add call*/
 	bool reported=false;
-	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING && atomic_read(&hdata->state) != SBI_HSM_STATE_STARTED) {
+	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
 		if(!reported){
 			sbi_printf("hart %d state =%d to wait for SBI_HSM_STATE_START_PENDING\n", hartid, (int)atomic_read(&hdata->state));
 			reported=true;
 		}
+		if(current_hartid() == sbi_domain_thishart_ptr()->boot_hartid)
 		wfi();
 	};
 	sbi_printf("%d: complte the wait for SBI_HSM_STATE_START_PENDING\n", hartid);
@@ -210,8 +211,31 @@ int sbi_hsm_init(struct sbi_scratch *scratch, u32 hartid, bool cold_boot)
 				    SBI_HSM_STATE_START_PENDING :
 				    SBI_HSM_STATE_STOPPED);
 		}
-	} else {
-		sbi_printf("hart %d: sbi_hsm_hart_wait\n",hartid);
+	} else if(sbi_is_domain_boot_hart(hartid)){
+		/* Initialize the HSM states in a domain;
+
+		Only domain boot hart can initialize the hsm state for other harts;
+		Set domain boot hart's state to START_PENDING;
+		Set secondary harts in that domain to STOPPED;
+
+		After domain boot hart enters kernel, it would make ecalls
+		sbi_hsm_hart_start() for updating hsmstate of secondary harts.
+
+		TODO(ziqiao): Need to relocate and isolate scratches from other domains.
+		TODO(ziqiao): In ideal case, ecall trap handler is alo inside domain memory;
+		*/
+		struct sbi_domain * dom = sbi_hartid_to_domain(hartid);
+		sbi_hartmask_for_each_hart(i, dom->possible_harts){
+        	rscratch = sbi_hartid_to_scratch(i);
+        	if (!rscratch)
+            	continue;
+        	hdata = sbi_scratch_offset_ptr(rscratch, hart_data_offset);
+			ATOMIC_INIT(&hdata->state,
+				    (i==hartid) ?
+				    SBI_HSM_STATE_START_PENDING :
+				    SBI_HSM_STATE_STOPPED);
+		}
+	}else{
 		sbi_hsm_hart_wait(scratch, hartid);
 	}
 

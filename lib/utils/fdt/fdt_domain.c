@@ -412,6 +412,24 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 		sbi_memcpy(dom->stdout_path, val, len);
 	}
 
+	// next image source.
+	val64 = 0;
+	val = fdt_getprop(fdt, domain_offset, "next-boot-src", &len);
+	if (val && len >= 8) {
+		val64 = fdt32_to_cpu(val[0]);
+		val64 = (val64 << 32) | fdt32_to_cpu(val[1]);
+	}
+	dom->next_boot_src = val64;
+
+    // next image size
+    val64 = 0;
+    val = fdt_getprop(fdt, domain_offset, "next-boot-size", &len);
+	if (val && len >= 8) {
+		val64 = fdt32_to_cpu(val[0]);
+		val64 = (val64 << 32) | fdt32_to_cpu(val[1]);
+	}
+    dom->next_boot_size = val64;
+
 	/* HART to domain assignment mask based on CPU DT nodes */
 	sbi_hartmask_clear_all(&assign_mask);
 	fdt_for_each_subnode(cpu_offset, fdt, cpus_offset) {

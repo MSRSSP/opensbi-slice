@@ -12,7 +12,7 @@
 
 #include <sbi/sbi_types.h>
 #include <sbi/sbi_hartmask.h>
-
+#include <sbi/d.h>
 struct sbi_scratch;
 
 /** Domain access types */
@@ -51,6 +51,7 @@ struct sbi_domain_memregion {
 
 /** Representation of OpenSBI domain */
 struct sbi_domain {
+	struct d_extended_config;
 	/**
 	 * Logical index of this domain
 	 * Note: This set by sbi_domain_finalize() in the coldboot path

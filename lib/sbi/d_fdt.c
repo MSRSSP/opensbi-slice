@@ -48,7 +48,7 @@ void print_fdt(void * fdt){
    _print_fdt(fdt, root, prefix);
 }
 
-void relocate_fdt(const void * src_fdt, void * dst_fdt){
+void copy_fdt(const void * src_fdt, void * dst_fdt){
     if(dst_fdt==0){
         return;
     }
@@ -143,8 +143,8 @@ int d_create_domain_fdt(const void * dom_ptr){
         return 0;
     }
     d_printf("Hart-%d: %s: fdt=%lx\n", current_hartid(), __func__, domain->next_arg1);
-
-    relocate_fdt(sbi_scratch_thishart_arg1_ptr(), fdt);
+    // TODO: reset domain memory;
+    copy_fdt(sbi_scratch_thishart_arg1_ptr(), fdt);
     fdt_cpu_fixup(fdt, dom_ptr);
     // Cannot remove cpu0;
     // If exposing only cpu0, cpu3, cpu4, kernel would panic

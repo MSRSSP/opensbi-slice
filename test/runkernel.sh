@@ -17,7 +17,6 @@ ${QEMU} ${DEBUG_OPT} -M sifive_u -m 1G -display none \
 	-bios ${BIOS_PATH} \
 	-kernel ${KERNEL_PATH} \
 	-drive file=$RAM_DISK_PATH,format=raw,id=hd0 \
-	-device loader,file=${SECOND_IMAGE},addr=0x90200000 \
-	-device loader,file=${SECOND_IMAGE},addr=0xa0200000
+	-device loader,file=${SECOND_IMAGE},addr=0x90200000 
 
 	 

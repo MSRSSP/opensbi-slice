@@ -304,9 +304,9 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-	rc = d_create_domain_fdt(sbi_domain_thishart_ptr());
+	rc = prepare_domain_memory(sbi_domain_thishart_ptr());
 	if (rc) {
-		d_printf("%s: d_create_domain_fdt (error %d)\n",
+		d_printf("%s: prepare_domain_memory (error %d)\n",
 			   __func__, rc);
 		sbi_hart_hang();
 	}
@@ -371,9 +371,9 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-	rc = d_create_domain_fdt(sbi_domain_thishart_ptr());
+	rc = prepare_domain_memory(sbi_domain_thishart_ptr());
 	if (rc) {
-		d_printf("%s: d_create_domain_fdt (error %d)\n",
+		d_printf("%s: prepare_domain_memory (error %d)\n",
 			   __func__, rc);
 		sbi_hart_hang();
 	}

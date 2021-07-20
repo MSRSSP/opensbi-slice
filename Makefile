@@ -212,6 +212,7 @@ CFLAGS		+=	$(GENFLAGS)
 CFLAGS		+=	$(platform-cflags-y)
 CFLAGS		+=	-fno-pie -no-pie
 CFLAGS		+=	$(firmware-cflags-y)
+CFLAGS		+= 	-fms-extensions
 
 CPPFLAGS	+=	$(GENFLAGS)
 CPPFLAGS	+=	$(platform-cppflags-y)

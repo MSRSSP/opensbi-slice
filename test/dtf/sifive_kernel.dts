@@ -24,6 +24,12 @@
 				order = <20>;
 			};
 
+			storage_mem: storage_mem0 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x80000000>;
+				order = <28>;
+			};
+
 			mem0: mem0 {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x80000000>;
@@ -32,13 +38,14 @@
 
 			mem1: mem1 {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0x90000000>;
+				base = <0x0 0xa0000000>;
 				order = <28>;
 			};
+
 			mem2: mem2 {
 				compatible = "opensbi,domain,memregion";
-				base = <0x0 0xa0000000>;
-				order = <29>;
+				base = <0x0 0xb0000000>;
+				order = <28>;
 			};
 
 			uuart_1: uuart_1 {
@@ -121,23 +128,27 @@
 				possible-harts = <&cpu1 &cpu2>;
 				boot-hart = <&cpu2>;
 				regions =  <&fwmem 0x7>, <&mem1 0x7>, <&mem2 0x0>, <&clock_mem 0x3>, <&plic_mem 0x3>,<&net_mem 0x3>, <&uuart_1 0x7>, <&reset 0x7>;
-				next-arg1 = <0x0 0x93200000>;
-				next-addr = <0x0 0x90200000>;
+				next-arg1 = <0x0 0xa2200000>;
+				next-addr = <0x0 0xa0200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10010000";
+				next-boot-src =  <0x0 0x90200000>;
+				next-boot-size =  <0x0 0x01614600>;
 			};
 
 			udomain2: untrusted-domain2 {
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu3 &cpu4>;
 				boot-hart = <&cpu4>;
-				regions = <&fwmem 0x7>, <&mem2 0x7>, <&clock_mem 0x3>, <&plic_mem 0x3>, <&net_mem 0x3>, <&uuart_2 0x3>, <&reset 0x7>;
-				next-arg1 = <0x0 0xa2200000>;
-				next-addr = <0x0 0xa0200000>;
+				regions = <&fwmem 0x7>,<&mem1 0x0>, <&mem2 0x7>, <&clock_mem 0x3>, <&plic_mem 0x3>, <&net_mem 0x3>, <&uuart_2 0x3>, <&reset 0x7>;
+				next-arg1 = <0x0 0xb2200000>;
+				next-addr = <0x0 0xb0200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10011000";
+				next-boot-src =  <0x0 0x90200000>;
+				next-boot-size =  <0x0 0x01614600>;
 			};
 
 		};
