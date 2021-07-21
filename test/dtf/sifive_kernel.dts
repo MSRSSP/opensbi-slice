@@ -134,7 +134,9 @@
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10010000";
 				next-boot-src =  <0x0 0x90200000>;
-				next-boot-size =  <0x0 0x01614600>;
+				// could be replace with your Image size.
+				// Used 0x2000000 as a default value for any kernel image;
+				next-boot-size = <0x0 0x02000000>;
 			};
 
 			udomain2: untrusted-domain2 {
@@ -148,7 +150,9 @@
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10011000";
 				next-boot-src =  <0x0 0x90200000>;
-				next-boot-size =  <0x0 0x01614600>;
+				// could be replace with your Image size
+				// Used 0x2000000 as a default value for any kernel image;
+				next-boot-size = <0x0 0x02000000>;
 			};
 
 		};
