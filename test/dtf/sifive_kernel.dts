@@ -48,7 +48,7 @@
 				order = <28>;
 			};
 
-			uuart_1: uuart_1 {
+			uuart_0: uuart_0 {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x10010000>;
 				order = <12>;
@@ -56,12 +56,20 @@
 				devices = <&uart_0>;
 			};
 
-			uuart_2: uuart_2 {
+			uuart_1: uuart_1 {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x10011000>;
 				order = <12>;
 				mmio;
 				devices = <&uart_1>;
+			};
+
+			uuart_2: uuart_2 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10012000>;
+				order = <12>;
+				mmio;
+				devices = <&uart_2>;
 			};
 
 			clint_mem: clint_mem {
@@ -132,7 +140,7 @@
 				next-addr = <0x0 0xa0200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
-				stdout-path = "/soc/serial@10010000";
+				stdout-path = "/soc/serial@10011000";
 				next-boot-src =  <0x0 0x90200000>;
 				// could be replace with your Image size.
 				// Used 0x2000000 as a default value for any kernel image;
@@ -148,7 +156,7 @@
 				next-addr = <0x0 0xb0200000>;
 				next-mode = <0x1>;
 				system-reset-allowed;
-				stdout-path = "/soc/serial@10011000";
+				stdout-path = "/soc/serial@10012000";
 				next-boot-src =  <0x0 0x90200000>;
 				// could be replace with your Image size
 				// Used 0x2000000 as a default value for any kernel image;
@@ -161,6 +169,7 @@
 	aliases {
 		serial0 = "/soc/serial@10010000";
 		serial1 = "/soc/serial@10011000";
+		serial2 = "/soc/serial@10012000";
 		ethernet0 = "/soc/ethernet@10090000";
 	};
 
@@ -334,7 +343,7 @@
 		compatible = "simple-bus";
 		ranges;
 
-		uart_0:serial@10010000 {
+		uart_0: serial@10010000 {
 			interrupts = <0x04>;
 			interrupt-parent = <0x09>;
 			clocks = <0x08 0x03>;
@@ -347,6 +356,14 @@
 			interrupt-parent = <0x09>;
 			clocks = <0x08 0x03>;
 			reg = <0x00 0x10011000 0x00 0x1000>;
+			compatible = "sifive,uart0";
+		};
+
+		uart_2: serial@10012000 {
+			interrupts = <0x20>;
+			interrupt-parent = <0x09>;
+			clocks = <0x08 0x03>;
+			reg = <0x00 0x10012000 0x00 0x1000>;
 			compatible = "sifive,uart0";
 		};
 
