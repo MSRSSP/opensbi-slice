@@ -18,6 +18,17 @@
 				order = <12>;
 			};
 
+			reset_2: reset_2 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x10000c>;
+				order = <2>;
+			};
+			reset_22: reset_22 {
+				compatible = "opensbi,domain,memregion";
+				base = <0x0 0x100010>;
+				order = <2>;
+			};
+
 			fwmem: fwmem {
 				compatible = "opensbi,domain,memregion";
 				base = <0x0 0x80000000>;
@@ -151,7 +162,7 @@
 				compatible = "opensbi,domain,instance";
 				possible-harts = <&cpu3 &cpu4>;
 				boot-hart = <&cpu4>;
-				regions = <&fwmem 0x7>,<&mem1 0x0>, <&mem2 0x7>, <&clock_mem 0x3>, <&plic_mem 0x3>, <&net_mem 0x3>, <&uuart_2 0x3>, <&reset 0x7>;
+				regions = <&fwmem 0x7>,<&mem1 0x0>, <&mem2 0x7>, <&clock_mem 0x3>, <&plic_mem 0x3>, <&net_mem 0x3>, <&uuart_2 0x3>, <&reset_2 0x7>, <&reset_22 0x7>, <&reset 0x8>;
 				next-arg1 = <0x0 0xb2200000>;
 				next-addr = <0x0 0xb0200000>;
 				next-mode = <0x1>;

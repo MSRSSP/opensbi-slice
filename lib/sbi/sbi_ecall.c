@@ -12,6 +12,7 @@
 #include <sbi/sbi_ecall_interface.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_trap.h>
+#include <sbi/d_ecall.h>
 
 u16 sbi_ecall_version_major(void)
 {
@@ -168,6 +169,10 @@ int sbi_ecall_init(void)
 	if (ret)
 		return ret;
 	ret = sbi_ecall_register_extension(&ecall_vendor);
+	if (ret)
+		return ret;
+
+	ret = d_init_host_ecall_handler();
 	if (ret)
 		return ret;
 

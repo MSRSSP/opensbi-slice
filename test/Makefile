@@ -3,10 +3,6 @@ UART_ADDR=0x10011000
 all: ramdisk.ext4 hello_world.bin
 	make -C dtf
 
-ramdisk.ext4:
-	dd if=/dev/zero of=ramdisk.ext4 bs=1M count=4
-	mkfs.ext4 -j -F ramdisk.ext4
-
 %.elf: %.S
 	$(CROSS_COMPILE)gcc -g -nostdlib -nostdinc -e _start -Wl,--build-id=none -Wl,-Ttext=0x80100000 -DUART_SIFIVE -DUART_SIFIVE_BASE=${UART_ADDR} $< -o $@
 

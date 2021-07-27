@@ -25,6 +25,8 @@
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_tlb.h>
 #include <sbi/sbi_version.h>
+#include <sbi/riscv_io.h>
+
 
 #define BANNER                                              \
 	"   ____                    _____ ____ _____\n"     \
@@ -414,7 +416,6 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
-
 	sbi_hsm_prepare_next_jump(scratch, hartid);
 }
 

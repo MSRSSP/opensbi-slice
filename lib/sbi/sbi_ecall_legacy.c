@@ -51,7 +51,7 @@ static int sbi_ecall_legacy_handler(unsigned long extid, unsigned long funcid,
 	struct sbi_tlb_info tlb_info;
 	u32 source_hart = current_hartid();
 	ulong hmask = 0;
-
+	sbi_printf("called sbi_ecall_legacy_handler\n");
 	switch (extid) {
 	case SBI_EXT_0_1_SET_TIMER:
 #if __riscv_xlen == 32
@@ -61,6 +61,7 @@ static int sbi_ecall_legacy_handler(unsigned long extid, unsigned long funcid,
 #endif
 		break;
 	case SBI_EXT_0_1_CONSOLE_PUTCHAR:
+		sbi_printf("called SBI_EXT_0_1_CONSOLE_GETCHAR\n");
 		sbi_putc(regs->a0);
 		break;
 	case SBI_EXT_0_1_CONSOLE_GETCHAR:

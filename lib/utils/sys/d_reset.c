@@ -19,10 +19,6 @@
 #include <sbi/sbi_console.h>
 #include <sbi/d.h>
 
-#define FINISHER_FAIL		0x3333
-#define FINISHER_PASS		0x5555
-#define FINISHER_RESET		0x7777
-
 static void *d_reset_base;
 
 static int d_reset_system_reset_check(u32 type, u32 reason)
@@ -35,6 +31,14 @@ static int d_reset_system_reset_check(u32 type, u32 reason)
 	}
 
 	return 0;
+}
+
+void d_reset_by_hastmask(unsigned hart_mask){
+	hart_mask = hart_mask & 0xffff;
+	hart_mask <<= D_RESET_CPU_MASK_OFFSET;
+	d_printf("%s: write %x to %lx\n", __func__, FINISHER_RESET | hart_mask, (unsigned long)d_reset_base);
+	// MO_32. Using writew -> causes STORE/AMO error.
+	writel(FINISHER_RESET | hart_mask, d_reset_base);
 }
 
 static void d_reset_system_reset(u32 type, u32 reason)

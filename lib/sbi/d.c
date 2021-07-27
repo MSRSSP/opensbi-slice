@@ -1,9 +1,10 @@
 #include <sbi/sbi_console.h>
-#include <sbi/d.h>
 #include <sbi/sbi_domain.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_string.h>
+#include <sbi/d.h>
+#include <sbi/d_ecall.h>
 
 int sbi_is_domain_boot_hart(int hartid){
 	struct sbi_domain * dom = (struct sbi_domain *)sbi_hartid_to_domain(hartid);
@@ -46,3 +47,4 @@ int prepare_domain_memory(void * dom_ptr){
     return d_create_domain_fdt(dom_ptr);
     // TODO(ziqiao): relocate scratches and hart states to domain memory.
 }
+

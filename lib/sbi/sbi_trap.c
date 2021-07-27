@@ -19,6 +19,8 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
+#include <sbi/d_ecall.h>
+
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
@@ -252,12 +254,20 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 		rc  = sbi_misaligned_store_handler(mtval, mtval2, mtinst, regs);
 		msg = "misaligned store handler failed";
 		break;
+	
 	case CAUSE_SUPERVISOR_ECALL:
 	case CAUSE_MACHINE_ECALL:
 		rc  = sbi_ecall_handler(regs);
 		msg = "ecall handler failed";
-		break;
-	default:
+		break;	
+	default:{
+		if (mcause == CAUSE_USER_ECALL && regs->a7 == SBI_EXT_EXPERIMENTAL_D){
+			sbi_printf("%s: mcause =%lx, a0=%lx, a6=%lx, a7=%lx\n",
+						__func__, mcause, regs->a0, regs->a6, regs->a7);
+			rc  = sbi_ecall_handler(regs);
+			msg = "ecall handler failed";
+			break;
+		}
 		/* If the trap came from S or U mode, redirect it there */
 		trap.epc = regs->mepc;
 		trap.cause = mcause;
@@ -266,6 +276,7 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 		trap.tinst = mtinst;
 		rc = sbi_trap_redirect(regs, &trap);
 		break;
+	}
 	};
 
 trap_error:
