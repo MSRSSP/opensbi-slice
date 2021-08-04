@@ -33,7 +33,7 @@ static int d_reset_system_reset_check(u32 type, u32 reason)
 	return 0;
 }
 
-void d_reset_by_hastmask(unsigned hart_mask){
+void d_reset_by_hartmask(unsigned hart_mask){
 	hart_mask = hart_mask & 0xffff;
 	hart_mask <<= D_RESET_CPU_MASK_OFFSET;
 	d_printf("%s: write %x to %lx\n", __func__, FINISHER_RESET | hart_mask, (unsigned long)d_reset_base);

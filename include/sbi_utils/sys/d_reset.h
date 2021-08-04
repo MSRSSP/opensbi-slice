@@ -20,5 +20,5 @@
 
 int d_reset_init(unsigned long base);
 
-void d_reset_by_hastmask(unsigned hart_mask);
+void d_reset_by_hartmask(unsigned hart_mask);
 #endif

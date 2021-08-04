@@ -3,6 +3,8 @@ set -e
 
 BIOS_PATH=${TOP}/opensbi/build/platform/generic/firmware/fw_jump.bin
 KERNEL_PATH=${TOP}/linux/arch/riscv/boot/Image
+HOST_IMAGE=../hoststack/build/host_kernel_image
+GUEST_IMAGE=../hoststack/build/guest_kernel_image
 QEMU=${TOP}/qemu/build/qemu-system-riscv64
 DTB_PATH=dtf/sifive_kernel.dtb
 SECOND_IMAGE=${KERNEL_PATH}
@@ -17,6 +19,6 @@ ${QEMU} ${DEBUG_OPT} -M sifive_u -m 1G -display none \
 	-serial telnet:localhost:4320,server,wait \
 	-dtb ${DTB_PATH} -smp 5 \
 	-bios ${BIOS_PATH} \
-	-kernel ${KERNEL_PATH} \
-	-device loader,file=${KERNEL_PATH},addr=0x90200000 
+	-kernel ${HOST_IMAGE} \
+	-device loader,file=${GUEST_IMAGE},addr=0x90200000 
 	 

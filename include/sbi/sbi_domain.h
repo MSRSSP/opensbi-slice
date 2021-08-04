@@ -51,7 +51,6 @@ struct sbi_domain_memregion {
 
 /** Representation of OpenSBI domain */
 struct sbi_domain {
-	struct d_extended_config;
 	/**
 	 * Logical index of this domain
 	 * Note: This set by sbi_domain_finalize() in the coldboot path
@@ -81,6 +80,7 @@ struct sbi_domain {
 	char stdout_path[64];
 	/** Is domain allowed to reset the system */
 	bool system_reset_allowed;
+	struct d_extended_config;
 };
 
 /** The root domain instance */

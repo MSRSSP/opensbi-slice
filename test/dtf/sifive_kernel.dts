@@ -152,7 +152,7 @@
 				next-mode = <0x1>;
 				system-reset-allowed;
 				stdout-path = "/soc/serial@10011000";
-				next-boot-src =  <0x0 0x90200000>;
+				next-boot-src =  <0x0 0x80200000>;
 				// could be replace with your Image size.
 				// Used 0x2000000 as a default value for any kernel image;
 				next-boot-size = <0x0 0x02000000>;
