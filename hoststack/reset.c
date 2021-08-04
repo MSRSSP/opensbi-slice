@@ -1,6 +1,3 @@
-/* Copyright 2019 SiFive, Inc */
-/* SPDX-License-Identifier: Apache-2.0 */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +6,6 @@
 
 void d_reset(int dom_index)
 {
-	char c = 'a';
 	unsigned long err, val;
 	sbi_ecall(SBI_EXT_EXPERIMENTAL_D, SBI_D_RESET, 
 			dom_index, 0, 0, 0, 0, 0,

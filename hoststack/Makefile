@@ -20,6 +20,7 @@ TARGETS+=${PROGRAM}
 TARGETS+=${GUEST_INITRAM}.cpio
 TARGETS+=${HOST_INITRAM}.cpio
 TARGETS+=$(build_dir)/host_kernel_image
+TARGETS+=$(build_dir)/guest_kernel_image
 CURRENT_DIR=$(PWD)
 default: $(TARGETS)
 include lib/Makefile
@@ -43,7 +44,7 @@ $(HOST_INITRAM).cpio: $(GUEST_INITRAM).cpio  $(HOST_INITRAM) $(HOST_PROGRAMS)
 	echo $(CURRENT_DIR);\
 	usr/gen_initramfs.sh -o $(CURRENT_DIR)/${HOST_INITRAM}.cpio $(CURRENT_DIR)/${HOST_INITRAM};" | fakeroot
 
-$(build_dir)/host_kernel_image: $(HOST_INITRAM).cpio ${LINUX_DIR}
+$(build_dir)/host_kernel_image: $(HOST_INITRAM).cpio ${LINUX_DIR} $(build_dir)/guest_kernel_image
 	echo "cd ${LINUX_DIR};\
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- \
 	CONFIG_INITRAMFS_SOURCE=$(CURRENT_DIR)/${HOST_INITRAM}.cpio -j16;" | sh
