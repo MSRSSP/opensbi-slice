@@ -1,6 +1,16 @@
 #ifndef __D_H__
 #define __D_H__
 
+/*Domain configurations stored in a protected memory region*/
+struct sbi_domain * allocate_domain();
+struct sbi_hartmask * allocate_hartmask();
+struct sbi_domain_memregion * allocate_memregion();
+void inc_domain_counter();
+unsigned read_domain_counter();
+
+/* Allocate a domain config*/
+void *d_allocate_domain();
+
 /* Create domain specific device tree.
 
 Copy the root device tree to dom->next_arg1;

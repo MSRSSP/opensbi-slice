@@ -5,6 +5,7 @@
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_domain.h>
+#include <sbi/sbi_hart.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/sbi_ecall.h>
@@ -33,11 +34,53 @@ static int sbi_d_reset(unsigned long *out_val, unsigned long dom_index){
 }
 
 static int sbi_d_create(unsigned long *out_val, 
-					unsigned long ncpus, 
+					unsigned long cpu_mask, 
 					unsigned long mem_start, 
 					unsigned long mem_size_order){
 	d_printf("%s: mem_start=%lx\n", __func__, mem_start);
+	struct sbi_hartmask mask;
+	unsigned cpuid=0;
+	while(cpu_mask){
+		if(cpu_mask&1){
+			sbi_hartmask_set_hart(cpuid, &mask);
+		}
+		cpuid++;
+	}
+	struct sbi_domain* dom = (struct sbi_domain*) d_allocate_domain(&mask);
+	
+	struct sbi_domain_memregion *reg, * regions;
+	int count=0;
+	regions = dom->regions;
+	unsigned long all_perm = SBI_DOMAIN_MEMREGION_MMODE | 
+					SBI_DOMAIN_MEMREGION_READABLE | 
+					SBI_DOMAIN_MEMREGION_WRITEABLE | 
+					SBI_DOMAIN_MEMREGION_EXECUTABLE;
+	sbi_domain_memregion_init(mem_start, 1UL<<mem_size_order,
+					all_perm, &regions[count++]);
+	sbi_domain_memregion_init(0x80000000, -1UL,
+					SBI_DOMAIN_MEMREGION_MMODE, &regions[count++]);
+	sbi_domain_for_each_memregion(&root, reg) {
+		if ((reg->flags & SBI_DOMAIN_MEMREGION_READABLE) ||
+		    (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) ||
+		    (reg->flags & SBI_DOMAIN_MEMREGION_EXECUTABLE))
+			continue;
+		if (sbi_hart_pmp_count(sbi_scratch_thishart_ptr()) <= count)
+			return SBI_ERR_D_NO_FREE_RESOURCE;
+		sbi_memcpy(&regions[count++], reg, sizeof(*reg));
+	}
+	sbi_domain_register(dom, dom->possible_harts);
     return 0;
+}
+
+static int sbi_d_info(unsigned long *out_val, unsigned long index){
+	struct sbi_domain * dom;
+	if(index == 0){
+		sbi_domain_dump_all("");
+	}else{
+		dom = sbi_index_to_domain(index);
+		sbi_domain_dump(dom, "");
+	}
+	return 0;
 }
 
 static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
@@ -55,6 +98,9 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 		break;
 	case SBI_D_CREATE:
 		retval = sbi_d_create(out_val, regs->a0, regs->a1, regs->a2);
+		break;
+	case SBI_D_INFO:
+		retval = sbi_d_info(out_val, regs->a0);
 		break;
 	default:
 		retval = SBI_ERR_SM_NOT_IMPLEMENTED;

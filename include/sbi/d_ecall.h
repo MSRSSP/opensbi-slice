@@ -3,6 +3,7 @@
 
 
 /** function ID **/
+#define SBI_D_INFO      0x3001
 #define SBI_D_CREATE    0x1001
 #define SBI_D_RESET     0x2001
 

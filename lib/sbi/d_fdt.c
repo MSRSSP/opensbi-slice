@@ -112,24 +112,33 @@ static const struct fdt_match fixup_device_match_table[] = {
 int fdt_device_fixup(void * fdt, const void * dom_ptr)
 {
     int len=-1;
-    int node = 0, prev, hartid;
+    int node = 0, hartid;
     const struct fdt_match *match;
     const u32 *val;
-    while(true){
-        prev = node;
+    int to_remove[64];
+    int n_remove = 0;
+    for(int i=0; i< sbi_scratch_last_hartid(); ++i ){
+        d_printf("fdt=%lx node=%d fixup_device_match_table=%lx\n", (unsigned long)fdt, node, (unsigned long)fixup_device_match_table);
         node = fdt_find_match(fdt, node, fixup_device_match_table, &match);
+        d_printf("fdt_find_match=%d\n", node);
         if(node<0){
             break;
         }
         val = fdt_getprop(fdt, node, "cpu", &len);
+        if(val == NULL){
+            continue;
+        }
         hartid = fdt32_to_cpu(*val);
         if (sbi_hartid_to_domain(hartid) == dom_ptr){
             continue;
         }
-        d_printf("hart %d: remove %s\n",current_hartid(), fdt_get_name(fdt, node, &len));
-        fdt_nop_node(fdt, node);
-        node = prev;
+        to_remove[n_remove] = node;
+        n_remove++;
     }
+    for(; n_remove>0; n_remove--){
+        fdt_nop_node(fdt, to_remove[n_remove-1]);
+    }
+    d_printf("end node=%d\n", node);
     return 0;
 }
 
@@ -149,9 +158,13 @@ int d_create_domain_fdt(const void * dom_ptr){
     // Cannot remove cpu0;
     // If exposing only cpu0, cpu3, cpu4, kernel would panic
     fdt_serial_fixup(fdt, dom_ptr);
+    d_printf("%s: --fdt_serial_fixup \n", __func__);
     fdt_device_fixup(fdt, dom_ptr);
+    d_printf("%s: --fdt_device_fixup \n", __func__);
     fdt_fixups(fdt, dom_ptr);
+    d_printf("%s: --fdt_fixups \n", __func__);
     fdt_domain_fixup(fdt, dom_ptr);
+    d_printf("%s: --fdt_domain_fixup \n", __func__);
     //d_fdt_reset_init(fdt);
     //d_remove_useless_cpus(fdt, dom_ptr);
     //print_fdt(fdt);

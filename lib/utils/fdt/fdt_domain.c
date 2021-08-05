@@ -17,6 +17,7 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_helper.h>
+#include <sbi/d.h>
 
 int fdt_iterate_each_domain(void *fdt, void *opaque,
 			    int (*fn)(void *fdt, int domain_offset,
@@ -225,6 +226,26 @@ static struct sbi_domain fdt_domains[FDT_DOMAIN_MAX_COUNT];
 static struct sbi_hartmask fdt_masks[FDT_DOMAIN_MAX_COUNT];
 static struct sbi_domain_memregion
 	fdt_regions[FDT_DOMAIN_MAX_COUNT][FDT_DOMAIN_REGION_MAX_COUNT + 1];
+
+struct sbi_domain * allocate_domain(){
+	return &fdt_domains[fdt_domains_count];
+}
+
+struct sbi_hartmask * allocate_hartmask(){
+	return &fdt_masks[fdt_domains_count];
+}
+
+struct sbi_domain_memregion * allocate_memregion(){
+	return fdt_regions[fdt_domains_count];
+}
+
+void inc_domain_counter(){
+	fdt_domains_count++;
+}
+
+unsigned read_domain_counter(){
+	return fdt_domains_count;
+}
 
 static int __fdt_parse_region(void *fdt, int domain_offset,
 			      int region_offset, u32 region_access,
