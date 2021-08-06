@@ -409,7 +409,7 @@ int sbi_domain_register(struct sbi_domain *dom,
 	const struct sbi_platform *plat = sbi_platform_thishart_ptr();
 
 	/* Sanity checks */
-	if (!dom || !assign_mask || domain_finalized)
+	if (!dom || !assign_mask)
 		return SBI_EINVAL;
 
 	/* Check if domain already discovered */

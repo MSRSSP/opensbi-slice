@@ -58,6 +58,7 @@ static int sbi_d_create(unsigned long *out_val,
 					SBI_DOMAIN_MEMREGION_EXECUTABLE;
 	sbi_domain_memregion_init(mem_start, 1UL<<mem_size_order,
 					all_perm, &regions[count++]);
+	d_printf("mem %lx %lx %lx", regions[count-1].base,regions[count-1].order, regions[count-1].flags);
 	sbi_domain_memregion_init(0x80000000, -1UL,
 					SBI_DOMAIN_MEMREGION_MMODE, &regions[count++]);
 	sbi_domain_for_each_memregion(&root, reg) {
@@ -69,8 +70,9 @@ static int sbi_d_create(unsigned long *out_val,
 			return SBI_ERR_D_NO_FREE_RESOURCE;
 		sbi_memcpy(&regions[count++], reg, sizeof(*reg));
 	}
-	sbi_domain_register(dom, dom->possible_harts);
-    return 0;
+	dom->next_addr = mem_start;
+	dom->next_mode = 1;
+	return sbi_domain_register(dom, dom->possible_harts);
 }
 
 static int sbi_d_info(unsigned long *out_val, unsigned long index){
