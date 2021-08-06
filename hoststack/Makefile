@@ -15,6 +15,7 @@ build_dir=build
 PROGRAM ?= $(build_dir)/reset
 HOST_PROGRAMS+=$(PROGRAM)
 HOST_PROGRAMS+=$(build_dir)/create
+HOST_PROGRAMS+=$(build_dir)/info
 HOST_INITRAM=$(build_dir)/host_initramfs
 GUEST_INITRAM=$(build_dir)/guest_initramfs
 TARGETS=
@@ -30,6 +31,8 @@ $(build_dir)/reset: $(build_dir)/reset.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
 $(build_dir)/create: $(build_dir)/create.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
+$(build_dir)/info: $(build_dir)/info.o $(build_dir)/lib/libsbi.a
+	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
 $(GUEST_INITRAM).cpio:
 	wget https://github.com/lowRISC/lowrisc-chip/releases/download/v0.6-rc3/initramfs.cpio 
 	mv initramfs.cpio $(GUEST_INITRAM).cpio 
@@ -38,8 +41,10 @@ $(HOST_INITRAM).cpio: $(GUEST_INITRAM).cpio  $(HOST_PROGRAMS)
 	echo "rm -r ${HOST_INITRAM}; mkdir ${HOST_INITRAM}; cd ${HOST_INITRAM};\
 	cpio -i < ../guest_initramfs.cpio;\
 	chown root init;\
-	mkdir hoststack; cp ../reset hoststack/reset;\
-	mkdir hoststack; cp ../create hoststack/create;\
+	mkdir hoststack; \
+	cp ../reset hoststack/reset;\
+	cp ../create hoststack/create;\
+	cp ../info hoststack/info;\
 	cd ${LINUX_DIR};\
 	echo $(CURRENT_DIR);\
 	usr/gen_initramfs.sh -o $(CURRENT_DIR)/${HOST_INITRAM}.cpio $(CURRENT_DIR)/${HOST_INITRAM};" | fakeroot

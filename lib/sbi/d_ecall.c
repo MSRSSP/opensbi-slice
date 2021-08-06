@@ -44,6 +44,7 @@ static int sbi_d_create(unsigned long *out_val,
 		if(cpu_mask&1){
 			sbi_hartmask_set_hart(cpuid, &mask);
 		}
+		cpu_mask >>= 1;
 		cpuid++;
 	}
 	struct sbi_domain* dom = (struct sbi_domain*) d_allocate_domain(&mask);
@@ -74,6 +75,7 @@ static int sbi_d_create(unsigned long *out_val,
 
 static int sbi_d_info(unsigned long *out_val, unsigned long index){
 	struct sbi_domain * dom;
+	d_printf("%s: dom_index=%ld\n", __func__, index);
 	if(index == 0){
 		sbi_domain_dump_all("");
 	}else{
