@@ -18,6 +18,9 @@ Remove unused devices and disable unused CPUs;
 */
 int d_create_domain_fdt(const void * dom_ptr);
 
+/* Print domain fdt information.*/
+void d_print_fdt(const void * fdt);
+
 /* Check whether the hart is a domain boot hart;*/
 int sbi_is_domain_boot_hart(int hartid);
 

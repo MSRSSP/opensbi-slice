@@ -20,5 +20,5 @@ ${QEMU} ${DEBUG_OPT} -M sifive_u -m 1G -display none \
 	-dtb ${DTB_PATH} -smp 5 \
 	-bios ${BIOS_PATH} \
 	-kernel ${HOST_IMAGE} \
-	-device loader,file=${GUEST_IMAGE},addr=0x90200000 
+	-device loader,file=${GUEST_IMAGE},addr=0x84000000 
 	 

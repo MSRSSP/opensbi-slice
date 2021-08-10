@@ -462,8 +462,10 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 			continue;
 
 		val = fdt_getprop(fdt, cpu_offset, "opensbi-domain", &len);
-		if (!val || len < 4)
-			return SBI_EINVAL;
+		if (!val || len < 4){
+			// This CPU does not belong to any domain.
+			continue;
+		}
 
 		doffset = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*val));
 		if (doffset < 0)

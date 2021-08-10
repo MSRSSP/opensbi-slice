@@ -379,7 +379,6 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 			   __func__, rc);
 		sbi_hart_hang();
 	}
-
 	rc = sbi_platform_irqchip_init(plat, FALSE);
 	if (rc){
 		sbi_printf("hart %d hang at sbi_platform_irqchip_init\n", hartid);

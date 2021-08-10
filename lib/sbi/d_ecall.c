@@ -36,31 +36,33 @@ static int sbi_d_reset(unsigned long *out_val, unsigned long dom_index){
 static int sbi_d_create(unsigned long *out_val, 
 					unsigned long cpu_mask, 
 					unsigned long mem_start, 
-					unsigned long mem_size_order){
-	d_printf("%s: mem_start=%lx\n", __func__, mem_start);
+					unsigned long mem_size){
 	struct sbi_hartmask mask;
-	unsigned cpuid=0;
+	struct sbi_domain* dom;
+	struct sbi_domain_memregion *reg, * regions;
+	unsigned  cpuid=0, count=0, boot_hartid = -1;
+	sbi_hartmask_clear_all(&mask);
 	while(cpu_mask){
 		if(cpu_mask&1){
 			sbi_hartmask_set_hart(cpuid, &mask);
+			boot_hartid = cpuid;
 		}
 		cpu_mask >>= 1;
 		cpuid++;
 	}
-	struct sbi_domain* dom = (struct sbi_domain*) d_allocate_domain(&mask);
-	
-	struct sbi_domain_memregion *reg, * regions;
-	int count=0;
+	dom = (struct sbi_domain*) d_allocate_domain(&mask);
+	dom->boot_hartid = boot_hartid;
 	regions = dom->regions;
 	unsigned long all_perm = SBI_DOMAIN_MEMREGION_MMODE | 
 					SBI_DOMAIN_MEMREGION_READABLE | 
 					SBI_DOMAIN_MEMREGION_WRITEABLE | 
 					SBI_DOMAIN_MEMREGION_EXECUTABLE;
-	sbi_domain_memregion_init(mem_start, 1UL<<mem_size_order,
+	sbi_domain_memregion_init(0, 1UL<<31,
 					all_perm, &regions[count++]);
-	d_printf("mem %lx %lx %lx", regions[count-1].base,regions[count-1].order, regions[count-1].flags);
-	sbi_domain_memregion_init(0x80000000, -1UL,
-					SBI_DOMAIN_MEMREGION_MMODE, &regions[count++]);
+	sbi_domain_memregion_init(mem_start, mem_size,
+					all_perm, &regions[count++]);
+	//sbi_domain_memregion_init(1UL<<31, 1UL<<31,
+	//				SBI_DOMAIN_MEMREGION_MMODE, &regions[count++]);
 	sbi_domain_for_each_memregion(&root, reg) {
 		if ((reg->flags & SBI_DOMAIN_MEMREGION_READABLE) ||
 		    (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) ||
@@ -71,7 +73,12 @@ static int sbi_d_create(unsigned long *out_val,
 		sbi_memcpy(&regions[count++], reg, sizeof(*reg));
 	}
 	dom->next_addr = mem_start;
+	dom->next_arg1 = mem_start + 0x2000000;
 	dom->next_mode = 1;
+	dom->next_boot_src  = 0x84000000;
+	dom->next_boot_size = 0x02000000;
+	sbi_memcpy(dom->stdout_path, "/soc/serial@10010000", 21);
+	dom->stdout_path[21] = 0;
 	return sbi_domain_register(dom, dom->possible_harts);
 }
 
@@ -83,6 +90,7 @@ static int sbi_d_info(unsigned long *out_val, unsigned long index){
 	}else{
 		dom = sbi_index_to_domain(index);
 		sbi_domain_dump(dom, "");
+		d_print_fdt((void*)dom->next_arg1);
 	}
 	return 0;
 }

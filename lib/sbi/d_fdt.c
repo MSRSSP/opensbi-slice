@@ -14,7 +14,7 @@
 #include <sbi/sbi_platform.h>
 
 
-void _print_fdt(void * fdt, int node, char* prefix){
+void _print_fdt(const void * fdt, int node, char* prefix){
     int property, child, fixup_len, plen, len;
     const fdt32_t * fixup_val;
     const char *name, * str_val;
@@ -42,7 +42,7 @@ void _print_fdt(void * fdt, int node, char* prefix){
     }
 }
 
-void print_fdt(void * fdt){
+void d_print_fdt(const void * fdt){
    int root = fdt_path_offset(fdt, "/");
    char prefix[64]="";
    _print_fdt(fdt, root, prefix);
@@ -167,6 +167,6 @@ int d_create_domain_fdt(const void * dom_ptr){
     d_printf("%s: --fdt_domain_fixup \n", __func__);
     //d_fdt_reset_init(fdt);
     //d_remove_useless_cpus(fdt, dom_ptr);
-    //print_fdt(fdt);
+    //d_print_fdt(fdt);
     return 0;
 }

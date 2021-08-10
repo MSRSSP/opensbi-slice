@@ -34,19 +34,30 @@ $(build_dir)/create: $(build_dir)/create.o $(build_dir)/lib/libsbi.a
 $(build_dir)/info: $(build_dir)/info.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
 $(GUEST_INITRAM).cpio:
-	wget https://github.com/lowRISC/lowrisc-chip/releases/download/v0.6-rc3/initramfs.cpio 
-	mv initramfs.cpio $(GUEST_INITRAM).cpio 
 
-$(HOST_INITRAM).cpio: $(GUEST_INITRAM).cpio  $(HOST_PROGRAMS)
-	echo "rm -r ${HOST_INITRAM}; mkdir ${HOST_INITRAM}; cd ${HOST_INITRAM};\
-	cpio -i < ../guest_initramfs.cpio;\
+$(build_dir)/initramfs.cpio:
+	mkdir -p `dirname $@`	
+	wget https://github.com/lowRISC/lowrisc-chip/releases/download/v0.6-rc3/initramfs.cpio 
+	mv initramfs.cpio $(build_dir)/initramfs.cpio
+
+$(GUEST_INITRAM).cpio: $(build_dir)/initramfs.cpio init
+	echo "rm -r $(build_dir)/initramfs; \
+	mkdir $(build_dir)/initramfs; \
+	cd $(build_dir)/initramfs;\
+	cpio  -i < $(CURRENT_DIR)/$<;\
 	chown root init;\
+	cat $(CURRENT_DIR)/init > init;\
+	cd ${LINUX_DIR};\
+	usr/gen_initramfs.sh -o $(CURRENT_DIR)/$(GUEST_INITRAM).cpio $(CURRENT_DIR)/$(build_dir)/initramfs;"| fakeroot
+
+$(HOST_INITRAM).cpio: $(GUEST_INITRAM).cpio  $(HOST_PROGRAMS) init
+	echo "rm -r ${HOST_INITRAM}; mkdir ${HOST_INITRAM}; cd ${HOST_INITRAM};\
+	cpio -i < $(CURRENT_DIR)/$<;\
 	mkdir hoststack; \
 	cp ../reset hoststack/reset;\
 	cp ../create hoststack/create;\
 	cp ../info hoststack/info;\
 	cd ${LINUX_DIR};\
-	echo $(CURRENT_DIR);\
 	usr/gen_initramfs.sh -o $(CURRENT_DIR)/${HOST_INITRAM}.cpio $(CURRENT_DIR)/${HOST_INITRAM};" | fakeroot
 
 $(build_dir)/host_kernel_image: $(HOST_INITRAM).cpio ${LINUX_DIR} $(build_dir)/guest_kernel_image

@@ -42,14 +42,27 @@ static void load_next_stage(const void * dom_ptr){
 
 int prepare_domain_memory(void *dom_ptr)
 {
-	struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
-	if (dom->boot_hartid != current_hartid()) {
-		return 0;
-	}
-	//zero_domain_memory(dom_ptr);
-	load_next_stage(dom_ptr);
-	return d_create_domain_fdt(dom_ptr);
-	// TODO(ziqiao): relocate scratches and hart states to domain memory.
+    int ret = 0;
+    if(dom_ptr  == 0){
+        // This hart does not belong to any domain. 
+        return ret;
+    }
+
+    struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
+    if (dom->boot_hartid != current_hartid()) {
+        return ret;
+    }
+    //zero_domain_memory(dom_ptr);
+    load_next_stage(dom_ptr);
+    ret = d_create_domain_fdt(dom_ptr);
+    if(ret){
+        return ret;
+    }
+    sbi_scratch_thishart_ptr()->next_arg1 = dom->next_arg1;
+    sbi_scratch_thishart_ptr()->next_addr = dom->next_addr;
+
+    return ret;
+    // TODO(ziqiao): relocate scratches and hart states to domain memory.
 }
 
 /*#ifdef PROTECT_DOMAIN_CONFIG
@@ -80,11 +93,11 @@ void *d_allocate_domain(struct sbi_hartmask * input_mask)
     struct sbi_hartmask * mask = allocate_hartmask();
 	struct sbi_domain *dom = allocate_domain();
 	struct sbi_domain_memregion *regions = allocate_memregion();
+    SBI_HARTMASK_INIT(mask);
     sbi_memcpy(mask, input_mask, sizeof(*mask));
 	sbi_memset(regions, 0,
 	       sizeof(*regions) * (FDT_DOMAIN_REGION_MAX_COUNT + 1));
 	dom->regions = regions;
-    SBI_HARTMASK_INIT(mask);
     dom->possible_harts = mask;
     inc_domain_counter();
     return dom;
