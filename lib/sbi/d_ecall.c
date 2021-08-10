@@ -122,13 +122,43 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 	return retval;
 }
 
+static int sbi_ecall_iopmp_handler(unsigned long extid, unsigned long funcid,
+			       const struct sbi_trap_regs *regs,
+			       unsigned long *out_val,
+			       struct sbi_trap_info *out_trap)
+{
+	uintptr_t retval;
+
+	d_printf("%s: funcid=%lx\n", __func__, funcid);
+
+	switch (funcid) {
+	case SBI_IOPMP_UPDATE:
+		retval = sbi_d_reset(out_val, regs->a0);
+		break;
+	case SBI_IOPMP_REMOVE:
+		retval = SBI_ERR_SM_NOT_IMPLEMENTED;
+		break;
+	default:
+		retval = SBI_ERR_SM_NOT_IMPLEMENTED;
+		break;
+	}
+	return retval;
+}
+
 struct sbi_ecall_extension ecall_d_ext = {
 	.extid_start = SBI_EXT_EXPERIMENTAL_D,
 	.extid_end   = SBI_EXT_EXPERIMENTAL_D,
 	.handle	     = sbi_ecall_d_handler,
 };
 
-int d_init_host_ecall_handler(){
+struct sbi_ecall_extension ecall_iopmp = {
+	.extid_start = SBI_EXT_EXPERIMENTAL_IOPMP,
+	.extid_end   = SBI_EXT_EXPERIMENTAL_IOPMP,
+	.handle	     = sbi_ecall_iopmp_handler,
+};
+
+int d_init_host_ecall_handler()
+{
     d_printf("[D] Initializing ... hart [%d]\n", current_hartid());
     return sbi_ecall_register_extension(&ecall_d_ext);
 }

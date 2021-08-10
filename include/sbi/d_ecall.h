@@ -1,11 +1,17 @@
 /*Extension ID*/
-#define SBI_EXT_EXPERIMENTAL_D 0x00888888 
+#define SBI_EXT_EXPERIMENTAL_D		0x00888888 
+#define SBI_EXT_EXPERIMENTAL_IOPMP	0x00888889
 
 
 /** function ID **/
 #define SBI_D_INFO      0x3001
 #define SBI_D_CREATE    0x1001
 #define SBI_D_RESET     0x2001
+
+enum sbi_iopmp_opcodes {
+	SBI_IOPMP_UPDATE,
+	SBI_IOPMP_REMOVE
+};
 
 /* error codes */
 #define SBI_ERR_D_SUCCESS                     0

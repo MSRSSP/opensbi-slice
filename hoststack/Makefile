@@ -1,4 +1,5 @@
-CROSS_COMPILE=riscv64-unknown-linux-gnu-
+#CROSS_COMPILE=riscv64-unknown-linux-gnu-
+CROSS_COMPILE=riscv64-linux-gnu-
 CC=$(CROSS_COMPILE)gcc
 AR=$(CROSS_COMPILE)ar
 compile_cc = mkdir -p `dirname $(1)`; \
@@ -27,7 +28,7 @@ TARGETS+=$(build_dir)/guest_kernel_image
 CURRENT_DIR=$(PWD)
 default: $(TARGETS)
 include lib/Makefile
-$(build_dir)/reset: $(build_dir)/reset.o $(build_dir)/lib/libsbi.a
+$(build_dir)/reset: $(build_dir)/reset.o $(build_dir)/iopmp.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
 $(build_dir)/create: $(build_dir)/create.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
