@@ -29,6 +29,7 @@ static inline void sbi_ecall_console_puts(const char *str)
 #define SBI_D_RESET 0x2001
 #define SBI_D_CREATE 0x1001
 #define SBI_D_INFO 0x3001
+#define SBI_D_MEM 0x2
 
 enum sbi_iopmp_opcodes {
 	SBI_IOPMP_UPDATE,

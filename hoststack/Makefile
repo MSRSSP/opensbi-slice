@@ -13,16 +13,13 @@ CFLAGS+=-I../include
 LINUX_DIR=${TOP}/linux
 
 build_dir=build
-PROGRAM ?= $(build_dir)/reset
-HOST_PROGRAMS+=$(PROGRAM)
+HOST_PROGRAMS+=$(build_dir)/reset
 HOST_PROGRAMS+=$(build_dir)/create
 HOST_PROGRAMS+=$(build_dir)/info
+HOST_PROGRAMS+=$(build_dir)/mem
 HOST_INITRAM=$(build_dir)/host_initramfs
 GUEST_INITRAM=$(build_dir)/guest_initramfs
 TARGETS=
-TARGETS+=${PROGRAM}
-TARGETS+=${GUEST_INITRAM}.cpio
-TARGETS+=${HOST_INITRAM}.cpio
 TARGETS+=$(build_dir)/host_kernel_image
 TARGETS+=$(build_dir)/guest_kernel_image
 CURRENT_DIR=$(PWD)
@@ -33,6 +30,8 @@ $(build_dir)/reset: $(build_dir)/reset.o $(build_dir)/iopmp.o $(build_dir)/lib/l
 $(build_dir)/create: $(build_dir)/create.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
 $(build_dir)/info: $(build_dir)/info.o $(build_dir)/lib/libsbi.a
+	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
+$(build_dir)/mem: $(build_dir)/mem.o $(build_dir)/lib/libsbi.a
 	$(CROSS_COMPILE)gcc $< $(build_dir)/lib/libsbi.a  -o $@
 $(GUEST_INITRAM).cpio:
 
@@ -58,13 +57,15 @@ $(HOST_INITRAM).cpio: $(GUEST_INITRAM).cpio  $(HOST_PROGRAMS) init
 	cp ../reset hoststack/reset;\
 	cp ../create hoststack/create;\
 	cp ../info hoststack/info;\
+	cp ../mem hoststack/mem;\
 	cd ${LINUX_DIR};\
 	usr/gen_initramfs.sh -o $(CURRENT_DIR)/${HOST_INITRAM}.cpio $(CURRENT_DIR)/${HOST_INITRAM};" | fakeroot
 
 $(build_dir)/host_kernel_image: $(HOST_INITRAM).cpio ${LINUX_DIR} $(build_dir)/guest_kernel_image
-	echo "cd ${LINUX_DIR};\
+	echo "cd ${LINUX_DIR}-m;\
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- \
-	CONFIG_INITRAMFS_SOURCE=$(CURRENT_DIR)/${HOST_INITRAM}.cpio -j16;" | sh
+	CONFIG_INITRAMFS_SOURCE=$(CURRENT_DIR)/${HOST_INITRAM}.cpio \
+	CONFIG_RISCV_M_MODE=1  -j16;" | sh
 	cp ${LINUX_DIR}/arch/riscv/boot/Image $@
 	
 

@@ -95,6 +95,19 @@ static int sbi_d_info(unsigned long *out_val, unsigned long index){
 	return 0;
 }
 
+static int sbi_d_mem(unsigned long *out_val, unsigned long op_code, unsigned long address, unsigned long data){
+	unsigned long * val_ptr = (unsigned long *) address;
+	switch(op_code){
+		case 'w':
+			*val_ptr = data;
+			break;
+		default:
+			break;
+	}
+	*out_val = *val_ptr;
+    return 0;
+}
+
 static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 			       const struct sbi_trap_regs *regs,
 			       unsigned long *out_val,
@@ -113,6 +126,9 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 		break;
 	case SBI_D_INFO:
 		retval = sbi_d_info(out_val, regs->a0);
+		break;
+	case SBI_D_MEM:
+		retval = sbi_d_mem(out_val, regs->a0, regs->a1, regs->a2);
 		break;
 	default:
 		retval = SBI_ERR_SM_NOT_IMPLEMENTED;
