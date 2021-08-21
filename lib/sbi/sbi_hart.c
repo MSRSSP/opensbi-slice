@@ -244,9 +244,9 @@ static unsigned long hart_get_features(struct sbi_scratch *scratch)
 	return hfeatures->features;
 }
 
-static inline char *sbi_hart_feature_id2string(unsigned long feature)
+static inline const char *sbi_hart_feature_id2string(unsigned long feature)
 {
-	char *fstr = NULL;
+	const char *fstr = NULL;
 
 	if (!feature)
 		return NULL;
@@ -281,7 +281,7 @@ void sbi_hart_get_features_str(struct sbi_scratch *scratch,
 			       char *features_str, int nfstr)
 {
 	unsigned long features, feat = 1UL;
-	char *temp;
+	const char *temp;
 	int offset = 0;
 
 	if (!features_str || nfstr <= 0)

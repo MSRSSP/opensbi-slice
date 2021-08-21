@@ -289,7 +289,8 @@ static int sanitize_domain(const struct sbi_platform *plat,
 	 * protect M-mode context and enforce checks on memory accesses.
 	 */
 	if (dom->next_mode != PRV_S &&
-	    dom->next_mode != PRV_U) {
+	    dom->next_mode != PRV_U && 
+		dom->next_mode != PRV_M) {
 		sbi_printf("%s: %s invalid next booting stage mode 0x%lx\n",
 			   __func__, dom->name, dom->next_mode);
 		return SBI_EINVAL;
@@ -533,7 +534,7 @@ int sbi_domain_root_add_memregion(const struct sbi_domain_memregion *reg)
 	return 0;
 }
 
-static void relocate_fdt(){
+static void relocate_fdt(void){
 	int index;
 	const struct sbi_domain * domain;
 	sbi_domain_for_each(index, domain){

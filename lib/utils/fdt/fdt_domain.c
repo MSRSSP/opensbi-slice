@@ -227,23 +227,23 @@ static struct sbi_hartmask fdt_masks[FDT_DOMAIN_MAX_COUNT];
 static struct sbi_domain_memregion
 	fdt_regions[FDT_DOMAIN_MAX_COUNT][FDT_DOMAIN_REGION_MAX_COUNT + 1];
 
-struct sbi_domain * allocate_domain(){
+struct sbi_domain * allocate_domain(void){
 	return &fdt_domains[fdt_domains_count];
 }
 
-struct sbi_hartmask * allocate_hartmask(){
+struct sbi_hartmask * allocate_hartmask(void){
 	return &fdt_masks[fdt_domains_count];
 }
 
-struct sbi_domain_memregion * allocate_memregion(){
+struct sbi_domain_memregion * allocate_memregion(void){
 	return fdt_regions[fdt_domains_count];
 }
 
-void inc_domain_counter(){
+void inc_domain_counter(void){
 	fdt_domains_count++;
 }
 
-unsigned read_domain_counter(){
+unsigned read_domain_counter(void){
 	return fdt_domains_count;
 }
 
@@ -406,7 +406,7 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 	val = fdt_getprop(fdt, domain_offset, "next-mode", &len);
 	if (val && len >= 4) {
 		val32 = fdt32_to_cpu(val[0]);
-		if (val32 != 0x0 && val32 != 0x1)
+		if (val32 != 0x0 && val32 != 0x1 && val32!=0x3)
 			val32 = 0x1;
 	} else {
 		if (domain_offset == *cold_domain_offset)

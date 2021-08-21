@@ -43,9 +43,9 @@ void _print_fdt(const void * fdt, int node, char* prefix){
 }
 
 void d_print_fdt(const void * fdt){
-   int root = fdt_path_offset(fdt, "/");
+   int root_fdt = fdt_path_offset(fdt, "/");
    char prefix[64]="";
-   _print_fdt(fdt, root, prefix);
+   _print_fdt(fdt, root_fdt, prefix);
 }
 
 void copy_fdt(const void * src_fdt, void * dst_fdt){
