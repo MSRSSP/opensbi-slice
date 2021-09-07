@@ -106,7 +106,8 @@ bool d_is_accessible(unsigned long addr, unsigned long size, const void* dom_ptr
 }
 
 static const struct fdt_match fixup_device_match_table[] = {
-    { .compatible = "syscon-reboot"}
+    { .compatible = "syscon-reboot"},
+    { },
 };
 
 int fdt_device_fixup(void * fdt, const void * dom_ptr)

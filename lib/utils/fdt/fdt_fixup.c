@@ -24,7 +24,6 @@ void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 	int err, cpu_offset, cpus_offset, len;
 	const char *mmu_type;
 	u32 hartid;
-	sbi_printf("fdt_cpu_fixup: fdt_ptr=%lx",(long) fdt);
 	err = fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 32);
 	if (err < 0)
 		return;
@@ -51,7 +50,6 @@ void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 					   "disabled");
 			}
 	}
-	fdt_serial_fixup(fdt, dom_ptr);
 }
 
 void fdt_plic_fixup(void *fdt)

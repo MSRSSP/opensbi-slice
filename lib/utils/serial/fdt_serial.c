@@ -65,6 +65,9 @@ void fdt_serial_fixup(void * fdt, const void *dom_ptr){
 											sep-start);
 		else
 			selected_noff = fdt_path_offset(fdt, start);
+	}else{
+		//Do not update serial entries in this device tree if no domain.
+		return;
 	}
 	for (pos = 0; pos < array_size(serial_drivers); pos++) {
 		drv = serial_drivers[pos];
