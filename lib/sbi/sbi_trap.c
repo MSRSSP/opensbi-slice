@@ -19,7 +19,7 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
-#include <sbi/d_ecall.h>
+#include <slice/slice_ecall.h>
 
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
@@ -261,7 +261,7 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 		msg = "ecall handler failed";
 		break;	
 	default:{
-		if (mcause == CAUSE_USER_ECALL && regs->a7 == SBI_EXT_EXPERIMENTAL_D){
+		if (mcause == CAUSE_USER_ECALL && regs->a7 == SBI_EXT_EXPERIMENTAL_SLICE){
 			sbi_printf("%s: mcause =%lx, a0=%lx, a6=%lx, a7=%lx\n",
 						__func__, mcause, regs->a0, regs->a6, regs->a7);
 			rc  = sbi_ecall_handler(regs);

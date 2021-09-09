@@ -1,6 +1,6 @@
 CROSS_COMPILE=riscv64-unknown-linux-gnu-
 UART_ADDR=0x10011000
-all: ramdisk.ext4 hello_world.bin
+all: hello_world.bin
 	make -C dtf
 
 %.elf: %.S

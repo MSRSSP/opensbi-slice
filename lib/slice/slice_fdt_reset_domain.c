@@ -10,9 +10,9 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/reset/fdt_reset.h>
-#include <sbi_utils/sys/d_reset.h>
 #include <sbi/sbi_console.h>
-#include <sbi/d.h>
+#include <slice/slice.h>
+#include <slice/slice_reset.h>
 
 static int d_reset_reset_init(void *fdt, int nodeoff,
 				  const struct fdt_match *match)
@@ -23,7 +23,7 @@ static int d_reset_reset_init(void *fdt, int nodeoff,
 	rc = fdt_get_node_addr_size(fdt, nodeoff, &addr, NULL);
 	if (rc)
 		return rc;
-	d_printf("===========%s using domain reset\n", __func__);
+	slice_printf("===========%s using domain reset\n", __func__);
 	return d_reset_init(addr);
 }
 

@@ -17,7 +17,7 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_helper.h>
-#include <sbi/d.h>
+#include <slice/slice.h>
 
 int fdt_iterate_each_domain(void *fdt, void *opaque,
 			    int (*fn)(void *fdt, int domain_offset,

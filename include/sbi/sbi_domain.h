@@ -12,7 +12,7 @@
 
 #include <sbi/sbi_types.h>
 #include <sbi/sbi_hartmask.h>
-#include <sbi/d.h>
+#include <slice/slice.h>
 struct sbi_scratch;
 
 /** Domain access types */
@@ -80,7 +80,7 @@ struct sbi_domain {
 	char stdout_path[64];
 	/** Is domain allowed to reset the system */
 	bool system_reset_allowed;
-	struct d_extended_config;
+	struct slice_config;
 };
 
 /** The root domain instance */

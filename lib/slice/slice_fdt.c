@@ -1,5 +1,4 @@
 #include <libfdt.h>
-#include <sbi/d.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_domain.h>
 #include <sbi/sbi_math.h>
@@ -12,7 +11,7 @@
 #include <sbi_utils/serial/fdt_serial.h>
 #include <sbi_utils/reset/fdt_reset.h>
 #include <sbi/sbi_platform.h>
-
+#include <slice/slice.h>
 
 void _print_fdt(const void * fdt, int node, char* prefix){
     int property, child, fixup_len, plen, len;
@@ -42,7 +41,7 @@ void _print_fdt(const void * fdt, int node, char* prefix){
     }
 }
 
-void d_print_fdt(const void * fdt){
+void slice_print_fdt(const void * fdt){
    int root_fdt = fdt_path_offset(fdt, "/");
    char prefix[64]="";
    _print_fdt(fdt, root_fdt, prefix);
@@ -53,7 +52,7 @@ void copy_fdt(const void * src_fdt, void * dst_fdt){
         return;
     }
     if(fdt_totalsize(dst_fdt)==0 && (long)src_fdt != (long)dst_fdt){
-        d_printf("duplicate %lx -> %lx", (unsigned long)src_fdt, (unsigned long)dst_fdt);
+        slice_printf("duplicate %lx -> %lx", (unsigned long)src_fdt, (unsigned long)dst_fdt);
         sbi_memcpy(dst_fdt, src_fdt, fdt_totalsize(src_fdt) );
     }
 }
@@ -73,12 +72,12 @@ int d_remove_useless_cpus(void * fdt, const void * dom_ptr){
             break;
         err = fdt_parse_hart_id(fdt, noff, &hartid);
         if(err){
-            d_printf("err hart %d\n", hartid);
+            slice_printf("err hart %d\n", hartid);
         }
-        d_printf("Check hart %d in dom %lx\n", hartid, (unsigned long)dom_ptr);
+        slice_printf("Check hart %d in dom %lx\n", hartid, (unsigned long)dom_ptr);
 
         if (hartid!=0 && sbi_hartid_to_domain(hartid) != dom_ptr){
-            d_printf("remove hart %d\n", hartid);
+            slice_printf("remove hart %d\n", hartid);
             fdt_nop_node(fdt, noff);
             noff = prevnoff;
         }
@@ -119,9 +118,9 @@ int fdt_device_fixup(void * fdt, const void * dom_ptr)
     int to_remove[64];
     int n_remove = 0;
     for(int i=0; i< sbi_scratch_last_hartid(); ++i ){
-        d_printf("fdt=%lx node=%d fixup_device_match_table=%lx\n", (unsigned long)fdt, node, (unsigned long)fixup_device_match_table);
+        slice_printf("fdt=%lx node=%d fixup_device_match_table=%lx\n", (unsigned long)fdt, node, (unsigned long)fixup_device_match_table);
         node = fdt_find_match(fdt, node, fixup_device_match_table, &match);
-        d_printf("fdt_find_match=%d\n", node);
+        slice_printf("fdt_find_match=%d\n", node);
         if(node<0){
             break;
         }
@@ -139,11 +138,11 @@ int fdt_device_fixup(void * fdt, const void * dom_ptr)
     for(; n_remove>0; n_remove--){
         fdt_nop_node(fdt, to_remove[n_remove-1]);
     }
-    d_printf("end node=%d\n", node);
+    slice_printf("end node=%d\n", node);
     return 0;
 }
 
-int d_create_domain_fdt(const void * dom_ptr){
+int slice_create_domain_fdt(const void * dom_ptr){
     const struct sbi_domain * domain = (const struct sbi_domain *) dom_ptr;
     if(domain->boot_hartid != current_hartid()){
         return 0;
@@ -152,20 +151,20 @@ int d_create_domain_fdt(const void * dom_ptr){
     if(fdt == NULL){
         return 0;
     }
-    d_printf("Hart-%d: %s: fdt=%lx\n", current_hartid(), __func__, domain->next_arg1);
+    slice_printf("Hart-%d: %s: fdt=%lx\n", current_hartid(), __func__, domain->next_arg1);
     // TODO: reset domain memory;
     copy_fdt(sbi_scratch_thishart_arg1_ptr(), fdt);
     fdt_cpu_fixup(fdt, dom_ptr);
     // Cannot remove cpu0;
     // If exposing only cpu0, cpu3, cpu4, kernel would panic
     fdt_serial_fixup(fdt, dom_ptr);
-    d_printf("%s: --fdt_serial_fixup \n", __func__);
+    slice_printf("%s: --fdt_serial_fixup \n", __func__);
     fdt_device_fixup(fdt, dom_ptr);
-    d_printf("%s: --fdt_device_fixup \n", __func__);
+    slice_printf("%s: --fdt_device_fixup \n", __func__);
     fdt_fixups(fdt, dom_ptr);
-    d_printf("%s: --fdt_fixups \n", __func__);
+    slice_printf("%s: --fdt_fixups \n", __func__);
     fdt_domain_fixup(fdt, dom_ptr);
-    d_printf("%s: --fdt_domain_fixup \n", __func__);
+    slice_printf("%s: --fdt_domain_fixup \n", __func__);
     //d_fdt_reset_init(fdt);
     //d_remove_useless_cpus(fdt, dom_ptr);
     //d_print_fdt(fdt);

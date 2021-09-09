@@ -6,9 +6,6 @@
 # Authors:
 #   Anup Patel <anup.patel@wdc.com>
 #
-libsbi-objs-y += d_fdt.o
-libsbi-objs-y += d_ecall.o
-libsbi-objs-y += d.o
 libsbi-objs-y += riscv_asm.o
 libsbi-objs-y += riscv_atomic.o
 libsbi-objs-y += riscv_hardfp.o

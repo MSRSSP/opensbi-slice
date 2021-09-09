@@ -24,7 +24,6 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_timer.h>
-#include <sbi/d.h>
 
 static const struct sbi_hsm_device *hsm_dev = NULL;
 static unsigned long hart_data_offset;
@@ -102,7 +101,6 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_START_PENDING,
 				  SBI_HSM_STATE_STARTED);
 	if (oldstate != SBI_HSM_STATE_START_PENDING){
-		d_printf("%s: oldstate= %d hang\n", __func__, oldstate);
 		sbi_hart_hang();
 	}
 }
@@ -211,7 +209,7 @@ int sbi_hsm_init(struct sbi_scratch *scratch, u32 hartid, bool cold_boot)
 				    SBI_HSM_STATE_START_PENDING :
 				    SBI_HSM_STATE_STOPPED);
 		}
-	} else if(sbi_is_domain_boot_hart(hartid)){
+	} else if(slice_is_domain_boot_hart(hartid)){
 		/* Initialize the HSM states in a domain;
 
 		Only domain boot hart can initialize the hsm state for other harts;
@@ -283,7 +281,7 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 	struct sbi_hsm_data *hdata;
 
 	/* For now, we only allow start mode to be S-mode or U-mode. */
-	if (smode != PRV_S && smode != PRV_U)
+	if (smode != PRV_S && smode != PRV_U && smode != PRV_M)
 		return SBI_EINVAL;
 	if (dom && !sbi_domain_is_assigned_hart(dom, hartid))
 		return SBI_EINVAL;

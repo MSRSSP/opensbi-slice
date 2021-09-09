@@ -68,6 +68,7 @@ export platform_build_dir=$(build_dir)/platform/$(platform_subdir)
 export include_dir=$(CURDIR)/include
 export libsbi_dir=$(CURDIR)/lib/sbi
 export libsbiutils_dir=$(CURDIR)/lib/utils
+export libslice_dir=$(CURDIR)/lib/slice
 export firmware_dir=$(CURDIR)/firmware
 
 # Find library version
@@ -112,6 +113,7 @@ platform-object-mks=$(shell if [ -d $(platform_src_dir)/ ]; then find $(platform
 endif
 libsbi-object-mks=$(shell if [ -d $(libsbi_dir) ]; then find $(libsbi_dir) -iname "objects.mk" | sort -r; fi)
 libsbiutils-object-mks=$(shell if [ -d $(libsbiutils_dir) ]; then find $(libsbiutils_dir) -iname "objects.mk" | sort -r; fi)
+libslice-object-mks=$(shell if [ -d $(libslice_dir) ]; then find $(libslice_dir) -iname "objects.mk" | sort -r; fi)
 firmware-object-mks=$(shell if [ -d $(firmware_dir) ]; then find $(firmware_dir) -iname "objects.mk" | sort -r; fi)
 
 # Include platform specifig config.mk
@@ -125,11 +127,13 @@ include $(platform-object-mks)
 endif
 include $(libsbi-object-mks)
 include $(libsbiutils-object-mks)
+include $(libslice-object-mks)
 include $(firmware-object-mks)
 
 # Setup list of objects
 libsbi-objs-path-y=$(foreach obj,$(libsbi-objs-y),$(build_dir)/lib/sbi/$(obj))
 libsbiutils-objs-path-y=$(foreach obj,$(libsbiutils-objs-y),$(build_dir)/lib/utils/$(obj))
+libslice-objs-path-y=$(foreach obj,$(libslice-objs-y),$(build_dir)/lib/slice/$(obj))
 ifdef PLATFORM
 platform-objs-path-y=$(foreach obj,$(platform-objs-y),$(platform_build_dir)/$(obj))
 firmware-bins-path-y=$(foreach bin,$(firmware-bins-y),$(platform_build_dir)/firmware/$(bin))
@@ -324,13 +328,13 @@ all: $(targets-y)
 # Preserve all intermediate files
 .SECONDARY:
 
-$(build_dir)/lib/libsbi.a: $(libsbi-objs-path-y)
+$(build_dir)/lib/libsbi.a: $(libsbi-objs-path-y) $(libslice-objs-path-y)
 	$(call compile_ar,$@,$^)
 
-$(build_dir)/lib/libsbiutils.a: $(libsbi-objs-path-y) $(libsbiutils-objs-path-y)
+$(build_dir)/lib/libsbiutils.a: $(libsbi-objs-path-y) $(libsbiutils-objs-path-y) 
 	$(call compile_ar,$@,$^)
 
-$(platform_build_dir)/lib/libplatsbi.a: $(libsbi-objs-path-y) $(libsbiutils-objs-path-y) $(platform-objs-path-y)
+$(platform_build_dir)/lib/libplatsbi.a: $(libsbi-objs-path-y) $(libsbiutils-objs-path-y) $(platform-objs-path-y) $(libslice-objs-path-y)
 	$(call compile_ar,$@,$^)
 
 $(build_dir)/%.dep: $(src_dir)/%.c

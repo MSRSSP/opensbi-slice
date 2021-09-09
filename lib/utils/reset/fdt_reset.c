@@ -26,7 +26,7 @@ static struct fdt_reset *reset_drivers[] = {
 
 static struct fdt_reset *current_driver = NULL;
 
-int d_fdt_reset_init(void* fdt)
+static int fdt_reset_init_internal(void* fdt)
 {
 	int pos, noff, rc;
 	struct fdt_reset *drv;
@@ -54,5 +54,5 @@ int d_fdt_reset_init(void* fdt)
 }
 
 int fdt_reset_init(void){
-	return d_fdt_reset_init(sbi_scratch_thishart_arg1_ptr());
+	return fdt_reset_init_internal(sbi_scratch_thishart_arg1_ptr());
 }

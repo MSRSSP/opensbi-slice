@@ -3,11 +3,12 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_string.h>
-#include <sbi/d.h>
-#include <sbi/d_ecall.h>
 #include <sbi_utils/fdt/fdt_domain.h>
+#include <slice/slice.h>
+#include <slice/slice_ecall.h>
 
-int sbi_is_domain_boot_hart(int hartid)
+
+int slice_is_domain_boot_hart(int hartid)
 {
 	struct sbi_domain *dom =
 		(struct sbi_domain *)sbi_hartid_to_domain(hartid);
@@ -23,7 +24,7 @@ static void load_next_stage(const void * dom_ptr){
     }
     if(src != dst){
         sbi_memcpy(dst, src, dom->next_boot_size);
-        d_printf("%s: %lx-> %lx\n", __func__, dom->next_boot_src, dom->next_addr);
+        slice_printf("%s: %lx-> %lx\n", __func__, dom->next_boot_src, dom->next_addr);
     }
 }
 
@@ -33,14 +34,14 @@ static void load_next_stage(const void * dom_ptr){
     
     while(reg->order>0){
         if(reg->base> 0x90000000 && (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) && !(reg->flags & SBI_DOMAIN_MEMREGION_MMIO)) {
-            d_printf("%s: base= %lx, order= %ld\n", __func__, reg->base, reg->order);
+            slice_printf("%s: base= %lx, order= %ld\n", __func__, reg->base, reg->order);
             sbi_memset((void*)reg->base, 0, 1UL << reg->order);
         }
         ++reg;
     }
 }*/
 
-int prepare_domain_memory(void *dom_ptr)
+int slice_setup_domain(void *dom_ptr)
 {
     int ret = 0;
     if(dom_ptr  == 0){
@@ -54,7 +55,7 @@ int prepare_domain_memory(void *dom_ptr)
     }
     //zero_domain_memory(dom_ptr);
     load_next_stage(dom_ptr);
-    ret = d_create_domain_fdt(dom_ptr);
+    ret = slice_create_domain_fdt(dom_ptr);
     if(ret){
         return ret;
     }
@@ -80,12 +81,12 @@ void allocate_fdt_domain_config()
 		addr += sizeof(struct sbi_domain_memregion);
 	}
 
-    d_printf("%s\n", __func__);
+    slice_printf("%s\n", __func__);
 }
 #endif
 */
 
-void *d_allocate_domain(struct sbi_hartmask * input_mask)
+void *slice_allocate_domain(struct sbi_hartmask * input_mask)
 {
     if(read_domain_counter() >= FDT_DOMAIN_MAX_COUNT){
         return 0;

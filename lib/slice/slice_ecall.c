@@ -9,9 +9,9 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/sbi_ecall.h>
-#include <sbi/d.h>
-#include <sbi/d_ecall.h>
-#include <sbi_utils/sys/d_reset.h>
+#include <slice/slice.h>
+#include <slice/slice_ecall.h>
+#include <slice/slice_reset.h>
 
 
 int cpu_is_host_cpu()
@@ -26,9 +26,9 @@ static int sbi_d_reset(unsigned long *out_val, unsigned long dom_index){
     *out_val = dom_index;
 	struct sbi_domain * dom = sbi_index_to_domain(dom_index);
 	if(dom == NULL){
-		return SBI_ERR_D_ILLEGAL_ARGUMENT;
+		return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
 	}
-	d_printf("%s: reset mask=%lx\n", __func__, *dom->possible_harts->bits);
+	slice_printf("%s: reset mask=%lx\n", __func__, *dom->possible_harts->bits);
 	d_reset_by_hartmask(*dom->possible_harts->bits);
     return 0;
 }
@@ -50,7 +50,7 @@ static int sbi_d_create(unsigned long *out_val,
 		cpu_mask >>= 1;
 		cpuid++;
 	}
-	dom = (struct sbi_domain*) d_allocate_domain(&mask);
+	dom = (struct sbi_domain*) slice_allocate_domain(&mask);
 	dom->boot_hartid = boot_hartid;
 	regions = dom->regions;
 	unsigned long all_perm = SBI_DOMAIN_MEMREGION_MMODE | 
@@ -69,7 +69,7 @@ static int sbi_d_create(unsigned long *out_val,
 		    (reg->flags & SBI_DOMAIN_MEMREGION_EXECUTABLE))
 			continue;
 		if (sbi_hart_pmp_count(sbi_scratch_thishart_ptr()) <= count)
-			return SBI_ERR_D_NO_FREE_RESOURCE;
+			return SBI_ERR_SLICE_NO_FREE_RESOURCE;
 		sbi_memcpy(&regions[count++], reg, sizeof(*reg));
 	}
 	dom->next_addr = mem_start;
@@ -84,13 +84,13 @@ static int sbi_d_create(unsigned long *out_val,
 
 static int sbi_d_info(unsigned long *out_val, unsigned long index){
 	struct sbi_domain * dom;
-	d_printf("%s: dom_index=%ld\n", __func__, index);
+	slice_printf("%s: dom_index=%ld\n", __func__, index);
 	if(index == 0){
 		sbi_domain_dump_all("");
 	}else{
 		dom = sbi_index_to_domain(index);
 		sbi_domain_dump(dom, "");
-		d_print_fdt((void*)dom->next_arg1);
+		slice_print_fdt((void*)dom->next_arg1);
 	}
 	return 0;
 }
@@ -114,24 +114,24 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 			       struct sbi_trap_info *out_trap)
 {
 	uintptr_t retval;
-	d_printf("%s: funcid=%lx\n", __func__, funcid);
+	slice_printf("%s: funcid=%lx\n", __func__, funcid);
 	//if (!cpu_is_host_cpu())
-	//	return SBI_ERR_D_SBI_PROHIBITED;
+	//	return SBI_ERR_SLICE_SBI_PROHIBITED;
 	switch (funcid) {
-	case SBI_D_RESET:
+	case SBI_SLICE_RESET:
 		retval = sbi_d_reset(out_val, regs->a0);
 		break;
-	case SBI_D_CREATE:
+	case SBI_SLICE_CREATE:
 		retval = sbi_d_create(out_val, regs->a0, regs->a1, regs->a2);
 		break;
-	case SBI_D_INFO:
+	case SBI_SLICE_INFO:
 		retval = sbi_d_info(out_val, regs->a0);
 		break;
-	case SBI_D_MEM:
+	case SBI_SLICE_MEM:
 		retval = sbi_d_mem(out_val, regs->a0, regs->a1, regs->a2);
 		break;
 	default:
-		retval = SBI_ERR_SM_NOT_IMPLEMENTED;
+		retval = SBI_ERR_SLICE_NOT_IMPLEMENTED;
 		break;
 	}
 
@@ -145,25 +145,25 @@ static int sbi_ecall_iopmp_handler(unsigned long extid, unsigned long funcid,
 {
 	uintptr_t retval;
 
-	d_printf("%s: funcid=%lx\n", __func__, funcid);
+	slice_printf("%s: funcid=%lx\n", __func__, funcid);
 
 	switch (funcid) {
 	case SBI_IOPMP_UPDATE:
 		retval = sbi_d_reset(out_val, regs->a0);
 		break;
 	case SBI_IOPMP_REMOVE:
-		retval = SBI_ERR_SM_NOT_IMPLEMENTED;
+		retval = SBI_ERR_SLICE_NOT_IMPLEMENTED;
 		break;
 	default:
-		retval = SBI_ERR_SM_NOT_IMPLEMENTED;
+		retval = SBI_ERR_SLICE_NOT_IMPLEMENTED;
 		break;
 	}
 	return retval;
 }
 
 struct sbi_ecall_extension ecall_d_ext = {
-	.extid_start = SBI_EXT_EXPERIMENTAL_D,
-	.extid_end   = SBI_EXT_EXPERIMENTAL_D,
+	.extid_start = SBI_EXT_EXPERIMENTAL_SLICE,
+	.extid_end   = SBI_EXT_EXPERIMENTAL_SLICE,
 	.handle	     = sbi_ecall_d_handler,
 };
 
@@ -173,8 +173,8 @@ struct sbi_ecall_extension ecall_iopmp = {
 	.handle	     = sbi_ecall_iopmp_handler,
 };
 
-int d_init_host_ecall_handler()
+int slice_init_host_ecall_handler()
 {
-    d_printf("[D] Initializing ... hart [%d]\n", current_hartid());
+    slice_printf("[D] Initializing ... hart [%d]\n", current_hartid());
     return sbi_ecall_register_extension(&ecall_d_ext);
 }

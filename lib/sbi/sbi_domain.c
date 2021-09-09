@@ -598,6 +598,7 @@ int sbi_domain_finalize(struct sbi_scratch *scratch, u32 cold_hartid)
 						dom->next_mode,
 						dom->next_arg1);
 			if (rc) {
+				sbi_domain_dump_all("");
 				sbi_printf("%s: failed to start boot HART %d"
 					   " for %s (error %d)\n", __func__,
 					   dhart, dom->name, rc);

@@ -11,13 +11,13 @@
 #include <sbi/riscv_asm.h>
 #include <sbi/sbi_ecall_interface.h>
 #include <sbi/sbi_system.h>
-#include <sbi_utils/sys/d_reset.h>
 #include <sbi/sbi_domain.h>
 #include <sbi/sbi_hart.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_console.h>
-#include <sbi/d.h>
+#include <slice/slice.h>
+#include <slice/slice_reset.h>
 
 static void *d_reset_base;
 
@@ -36,7 +36,7 @@ static int d_reset_system_reset_check(u32 type, u32 reason)
 void d_reset_by_hartmask(unsigned hart_mask){
 	hart_mask = hart_mask & 0xffff;
 	hart_mask <<= D_RESET_CPU_MASK_OFFSET;
-	d_printf("%s: write %x to %lx\n", __func__, FINISHER_RESET | hart_mask, (unsigned long)d_reset_base);
+	slice_printf("%s: write %x to %lx\n", __func__, FINISHER_RESET | hart_mask, (unsigned long)d_reset_base);
 	// MO_32. Using writew -> causes STORE/AMO error.
 	writel(FINISHER_RESET | hart_mask, d_reset_base);
 }
@@ -58,7 +58,7 @@ static void d_reset_system_reset(u32 type, u32 reason)
 	case SBI_SRST_RESET_TYPE_WARM_REBOOT:
 	{
 		sbi_hartmask_for_each_hart(hartid, dom->possible_harts) {
-			d_printf("%s: hart id=%d\n", __func__, hartid);
+			slice_printf("%s: hart id=%d\n", __func__, hartid);
 			scratch = sbi_hartid_to_scratch(hartid);
 			sbi_hsm_hart_stop(scratch, true);
 			sbi_hsm_hart_start(scratch, dom, hartid, dom->next_addr, dom->next_mode, dom->next_arg1);

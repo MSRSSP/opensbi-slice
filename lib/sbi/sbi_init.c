@@ -7,7 +7,7 @@
  *   Anup Patel <anup.patel@wdc.com>
  */
 
-#include <sbi/d.h>
+
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_atomic.h>
 #include <sbi/riscv_barrier.h>
@@ -26,7 +26,7 @@
 #include <sbi/sbi_tlb.h>
 #include <sbi/sbi_version.h>
 #include <sbi/riscv_io.h>
-
+#include <slice/slice.h>
 
 #define BANNER                                              \
 	"   ____                    _____ ____ _____\n"     \
@@ -306,9 +306,9 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-	rc = prepare_domain_memory(sbi_domain_thishart_ptr());
+	rc = slice_setup_domain(sbi_domain_thishart_ptr());
 	if (rc) {
-		d_printf("%s: prepare_domain_memory (error %d)\n",
+		slice_printf("%s: slice_setup_domain (error %d)\n",
 			   __func__, rc);
 		sbi_hart_hang();
 	}
@@ -373,9 +373,9 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-	rc = prepare_domain_memory(sbi_domain_thishart_ptr());
+	rc = slice_setup_domain(sbi_domain_thishart_ptr());
 	if (rc) {
-		d_printf("%s: prepare_domain_memory (error %d)\n",
+		slice_printf("%s: slice_setup_domain (error %d)\n",
 			   __func__, rc);
 		sbi_hart_hang();
 	}

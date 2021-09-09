@@ -10,4 +10,3 @@
 libsbiutils-objs-y += sys/clint.o
 libsbiutils-objs-y += sys/htif.o
 libsbiutils-objs-y += sys/sifive_test.o
-libsbiutils-objs-y += sys/d_reset.o
