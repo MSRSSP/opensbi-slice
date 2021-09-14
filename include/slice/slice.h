@@ -8,6 +8,11 @@ struct sbi_domain_memregion * allocate_memregion();
 void inc_domain_counter();
 unsigned read_domain_counter();
 
+enum slice_type {
+	SLICE_TYPE_STANDARD_DOMAIN,
+	SLICE_TYPE_SLICE,
+};
+
 /* Allocate a domain config*/
 void *slice_allocate_domain();
 
@@ -32,8 +37,20 @@ int slice_is_domain_boot_hart(int hartid);
 int slice_setup_domain(void * dom_ptr);
 
 struct slice_config{
-    unsigned long next_boot_src; // Use 0x80000000 - 0x90000000 as permanent storage;
-    unsigned next_boot_size;
+  enum slice_type slice_type;
+  // source address of device tree for this slice;
+  // in a protected memory region; The region could be
+  // 1. Only writable by host and this slice;  
+  // 2. Writable by host and only readable by sliced guests.
+  void * slice_dt_src; 
+  // source address of the next boot image;
+  // in host protected memory;
+  // copy context from next_boot_src to next_addr;
+  unsigned long next_boot_src;
+  // size of next boot image;
+  unsigned next_boot_size;
+  /** default stdio **/
+	char stdout_path[64];
 };
 
 #define slice_printf sbi_printf

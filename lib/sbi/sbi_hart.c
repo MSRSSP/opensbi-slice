@@ -18,6 +18,7 @@
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hart.h>
 #include <sbi/sbi_math.h>
+#include <sbi/sbi_string.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_trap.h>
@@ -176,7 +177,7 @@ unsigned int sbi_hart_pmp_addrbits(struct sbi_scratch *scratch)
 	return hfeatures->pmp_addr_bits;
 }
 
-int sbi_hart_pmp_configure(struct sbi_scratch *scratch)
+__attribute__((weak)) int sbi_hart_pmp_configure(struct sbi_scratch *scratch)
 {
 	struct sbi_domain_memregion *reg;
 	struct sbi_domain *dom = sbi_domain_thishart_ptr();

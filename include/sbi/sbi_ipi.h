@@ -28,6 +28,9 @@ struct sbi_ipi_device {
 
 	/** Clear IPI for a target HART */
 	void (*ipi_clear)(u32 target_hart);
+
+	/** Get IPI address for a target HART**/
+	unsigned long (*ipi_addr)(u32 target_hart);
 };
 
 struct sbi_scratch;

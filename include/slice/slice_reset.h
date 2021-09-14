@@ -7,8 +7,8 @@
  *   Anup Patel <anup.patel@wdc.com>
  */
 
-#ifndef __SYS_D_RESET_H__
-#define __SYS_D_RESET_H__
+#ifndef __SYS_SLICE_RESEY_H
+#define __SYS_SLICE_RESEY_H
 
 #include <sbi/sbi_types.h>
 
@@ -21,4 +21,5 @@
 int d_reset_init(unsigned long base);
 
 void d_reset_by_hartmask(unsigned hart_mask);
-#endif
+
+#endif //__SYS_SLICE_RESEY_H

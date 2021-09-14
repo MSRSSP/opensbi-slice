@@ -6,7 +6,16 @@
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <slice/slice.h>
 #include <slice/slice_ecall.h>
+#include <slice/slice_pmp.h>
 
+
+int is_slice(const struct sbi_domain *dom){
+    if (dom->index == root.index){
+        return 0;
+    }
+    return 1;
+    //return dom->slice_type == SLICE_TYPE_SLICE;
+}
 
 int slice_is_domain_boot_hart(int hartid)
 {
@@ -50,7 +59,17 @@ int slice_setup_domain(void *dom_ptr)
     }
 
     struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
+
+    if(!is_slice(dom)){
+        nonslice_setup_pmp(dom_ptr);
+        return 0;
+    }
+    ret = slice_setup_pmp(dom_ptr);
+
     if (dom->boot_hartid != current_hartid()) {
+        return ret;
+    }
+    if(ret){
         return ret;
     }
     //zero_domain_memory(dom_ptr);
@@ -100,6 +119,7 @@ void *slice_allocate_domain(struct sbi_hartmask * input_mask)
 	       sizeof(*regions) * (FDT_DOMAIN_REGION_MAX_COUNT + 1));
 	dom->regions = regions;
     dom->possible_harts = mask;
+    dom->slice_type = SLICE_TYPE_SLICE;
     inc_domain_counter();
     return dom;
 }

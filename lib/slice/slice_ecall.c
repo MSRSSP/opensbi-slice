@@ -11,6 +11,7 @@
 #include <sbi/sbi_ecall.h>
 #include <slice/slice.h>
 #include <slice/slice_ecall.h>
+#include <slice/slice_err.h>
 #include <slice/slice_reset.h>
 
 

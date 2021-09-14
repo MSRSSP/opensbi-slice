@@ -61,7 +61,7 @@ static const struct fdt_match riscv_cpu_match[] = {
 	{ .compatible = "riscv" },
 };
 
-int d_remove_useless_cpus(void * fdt, const void * dom_ptr){
+int slice_remove_useless_cpus(void * fdt, const void * dom_ptr){
     int noff=0, prevnoff=0, err;
     u32 hartid;
     const struct fdt_match *match;
@@ -85,7 +85,7 @@ int d_remove_useless_cpus(void * fdt, const void * dom_ptr){
     return 0;
 }
 
-bool d_is_accessible(unsigned long addr, unsigned long size, const void* dom_ptr){
+bool slice_is_accessible(unsigned long addr, unsigned long size, const void* dom_ptr){
     struct sbi_domain_memregion *reg;
 	const struct sbi_domain *dom = dom_ptr;
     sbi_domain_for_each_memregion(dom, reg) {
@@ -109,7 +109,7 @@ static const struct fdt_match fixup_device_match_table[] = {
     { },
 };
 
-int fdt_device_fixup(void * fdt, const void * dom_ptr)
+int fdt_reset_device_fixup(void * fdt, const void * dom_ptr)
 {
     int len=-1;
     int node = 0, hartid;
@@ -144,29 +144,34 @@ int fdt_device_fixup(void * fdt, const void * dom_ptr)
 
 int slice_create_domain_fdt(const void * dom_ptr){
     const struct sbi_domain * domain = (const struct sbi_domain *) dom_ptr;
+    void * fdt_src, *fdt;
     if(domain->boot_hartid != current_hartid()){
         return 0;
     }
-    void * fdt = (void *) domain->next_arg1;
+    fdt = (void *) domain->next_arg1;
     if(fdt == NULL){
         return 0;
     }
     slice_printf("Hart-%d: %s: fdt=%lx\n", current_hartid(), __func__, domain->next_arg1);
     // TODO: reset domain memory;
-    copy_fdt(sbi_scratch_thishart_arg1_ptr(), fdt);
+    if(domain->slice_dt_src){
+        fdt_src = domain->slice_dt_src;
+    }else{
+        fdt_src = (void*)root.next_arg1;
+    }
+    copy_fdt(fdt_src, fdt);
     fdt_cpu_fixup(fdt, dom_ptr);
     // Cannot remove cpu0;
     // If exposing only cpu0, cpu3, cpu4, kernel would panic
-    fdt_serial_fixup(fdt, dom_ptr);
-    slice_printf("%s: --fdt_serial_fixup \n", __func__);
-    fdt_device_fixup(fdt, dom_ptr);
+    fdt_reset_device_fixup(fdt, dom_ptr);
     slice_printf("%s: --fdt_device_fixup \n", __func__);
+    if(domain->slice_dt_src == NULL){
+        fdt_serial_fixup(fdt, dom_ptr);
+        slice_printf("%s: --fdt_serial_fixup \n", __func__);
+    }
     fdt_fixups(fdt, dom_ptr);
     slice_printf("%s: --fdt_fixups \n", __func__);
     fdt_domain_fixup(fdt, dom_ptr);
     slice_printf("%s: --fdt_domain_fixup \n", __func__);
-    //d_fdt_reset_init(fdt);
-    //d_remove_useless_cpus(fdt, dom_ptr);
-    //d_print_fdt(fdt);
     return 0;
 }

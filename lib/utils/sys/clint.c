@@ -56,10 +56,17 @@ static void clint_ipi_clear(u32 target_hart)
 	writel(0, &clint->ipi[target_hart - clint->first_hartid]);
 }
 
+static unsigned long clint_ipi_addr(u32 target_hart)
+{
+	struct clint_data *clint = clint_ipi_hartid2data[target_hart];
+	return (unsigned long)&clint->ipi[target_hart - clint->first_hartid];
+}
+
 static struct sbi_ipi_device clint_ipi = {
 	.name = "clint",
 	.ipi_send = clint_ipi_send,
-	.ipi_clear = clint_ipi_clear
+	.ipi_clear = clint_ipi_clear,
+	.ipi_addr = clint_ipi_addr,
 };
 
 int clint_warm_ipi_init(void)
