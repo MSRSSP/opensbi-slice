@@ -306,13 +306,6 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-	rc = slice_setup_domain(sbi_domain_thishart_ptr());
-	if (rc) {
-		slice_printf("%s: slice_setup_domain (error %d)\n",
-			   __func__, rc);
-		sbi_hart_hang();
-	}
-
 	sbi_boot_print_domains(scratch);
 
 	rc = sbi_hart_pmp_configure(scratch);
@@ -336,6 +329,13 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	sbi_boot_print_hart(scratch, hartid);
 
 	wake_coldboot_harts(scratch, hartid);
+
+	rc = slice_setup_domain(sbi_domain_thishart_ptr());
+	if (rc) {
+		slice_printf("%s: slice_setup_domain (error %d)\n",
+			   __func__, rc);
+		sbi_hart_hang();
+	}
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
