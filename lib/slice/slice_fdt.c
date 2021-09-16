@@ -173,5 +173,6 @@ int slice_create_domain_fdt(const void * dom_ptr){
     slice_printf("%s: --fdt_fixups \n", __func__);
     fdt_domain_fixup(fdt, dom_ptr);
     slice_printf("%s: --fdt_domain_fixup \n", __func__);
+    //slice_print_fdt(fdt);
     return 0;
 }
