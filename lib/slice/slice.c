@@ -8,13 +8,9 @@
 #include <slice/slice_ecall.h>
 #include <slice/slice_pmp.h>
 
-
-int is_slice(const struct sbi_domain *dom){
-    if (dom->index == root.index){
-        return 0;
-    }
-    return 1;
-    //return dom->slice_type == SLICE_TYPE_SLICE;
+int is_slice(const struct sbi_domain *dom)
+{
+    return dom->slice_type == SLICE_TYPE_SLICE;
 }
 
 int slice_is_domain_boot_hart(int hartid)

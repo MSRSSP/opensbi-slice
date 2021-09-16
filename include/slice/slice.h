@@ -51,6 +51,7 @@ struct slice_config{
   unsigned next_boot_size;
   /** default stdio **/
 	char stdout_path[64];
+  unsigned long dom_mem_size;
 };
 
 #define slice_printf sbi_printf
