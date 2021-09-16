@@ -231,7 +231,7 @@ static int sanitize_domain(const struct sbi_platform *plat,
 				   "order=%lu flags=0x%lx\n", __func__,
 				   dom->name, reg->base, reg->order,
 				   reg->flags);
-			return SBI_EINVAL;
+			//return SBI_EINVAL;
 		}
 	}
 
@@ -248,7 +248,7 @@ static int sanitize_domain(const struct sbi_platform *plat,
 	if (!have_fw_reg) {
 		sbi_printf("%s: %s does not have firmware region\n",
 			   __func__, dom->name);
-		return SBI_EINVAL;
+		//return SBI_EINVAL;
 	}
 
 	/* Sort the memory regions */
@@ -301,7 +301,7 @@ static int sanitize_domain(const struct sbi_platform *plat,
 				   SBI_DOMAIN_EXECUTE)) {
 		sbi_printf("%s: %s next booting stage addres 0x%lx can't "
 			   "execute\n", __func__, dom->name, dom->next_addr);
-		return SBI_EINVAL;
+		//return SBI_EINVAL;
 	}
 
 	return 0;
