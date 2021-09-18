@@ -22,7 +22,7 @@
 #include <slice/slice_ecall.h>
 
 
-static void __noreturn sbi_trap_error(const char *msg, int rc,
+static void  dump_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
 				      ulong mtinst, struct sbi_trap_regs *regs)
 {
@@ -70,7 +70,13 @@ static void __noreturn sbi_trap_error(const char *msg, int rc,
 		   hartid, "t4", regs->t4, "t5", regs->t5);
 	sbi_printf("%s: hart%d: %s=0x%" PRILX "\n", __func__, hartid, "t6",
 		   regs->t6);
+}
 
+static void __noreturn sbi_trap_error(const char *msg, int rc,
+				      ulong mcause, ulong mtval, ulong mtval2,
+				      ulong mtinst, struct sbi_trap_regs *regs)
+{
+	dump_trap_error(msg, rc, mcause, mtval, mtval2, mtinst, regs);
 	sbi_hart_hang();
 }
 
@@ -280,8 +286,22 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 	};
 
 trap_error:
-	if (rc)
-		sbi_trap_error(msg, rc, mcause, mtval, mtval2, mtinst, regs);
+	if (rc) {
+		switch (mcause) {
+		case CAUSE_LOAD_ACCESS:
+		case CAUSE_STORE_ACCESS:
+			dump_trap_error(msg, rc, mcause, mtval, mtval2, mtinst,
+					regs);
+			sbi_printf("Ignore the error and move to next pc.\n");
+			regs->mepc += 4;
+			regs->a0 = rc;
+			break;
+		default:
+			sbi_trap_error(msg, rc, mcause, mtval, mtval2, mtinst,
+				       regs);
+			break;
+		}
+	}
 	return regs;
 }
 

@@ -7,6 +7,7 @@
 #include <slice/slice.h>
 #include <slice/slice_ecall.h>
 #include <slice/slice_pmp.h>
+#include <sbi/riscv_barrier.h>
 
 int is_slice(const struct sbi_domain *dom)
 {
@@ -28,26 +29,27 @@ static void load_next_stage(const void * dom_ptr){
         return;
     }
     if(src != dst){
-        sbi_memcpy(dst, src, dom->next_boot_size);
-        slice_printf("%s: %lx-> %lx\n", __func__, dom->next_boot_src, dom->next_addr);
+	    slice_printf("%s: hart %d: %lx-> %lx, %x\n", __func__, current_hartid(),
+			 dom->next_boot_src, dom->next_addr, dom->next_boot_size);
+	    sbi_memcpy(dst, src, dom->next_boot_size);
     }
 }
 
-/*static void zero_domain_memory(void * dom_ptr){
-    struct sbi_domain * dom = (struct sbi_domain *) dom_ptr;
-    struct  sbi_domain_memregion* reg = dom->regions;
-    
-    while(reg->order>0){
-        if(reg->base> 0x90000000 && (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) && !(reg->flags & SBI_DOMAIN_MEMREGION_MMIO)) {
-            slice_printf("%s: base= %lx, order= %ld\n", __func__, reg->base, reg->order);
-            sbi_memset((void*)reg->base, 0, 1UL << reg->order);
-        }
-        ++reg;
-    }
-}*/
+static void zero_slice_memory(void * dom_ptr){
+	unsigned long startTicks = csr_read(CSR_MCYCLE);
+    struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
+	if (dom->next_addr) {
+		slice_printf("Zero Slice Mem (%lx, %lx).\n", dom->next_addr,
+			     dom->dom_mem_size);
+		sbi_memset((void *)dom->next_addr, 0, dom->dom_mem_size);
+	}
+	sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
+		   csr_read(CSR_MCYCLE) - startTicks);
+}
 
 int slice_setup_domain(void *dom_ptr)
 {
+    ulong start_slice_tick = csr_read(CSR_MCYCLE);
     int ret = 0;
     if(dom_ptr  == 0){
         // This hart does not belong to any domain. 
@@ -55,20 +57,19 @@ int slice_setup_domain(void *dom_ptr)
     }
 
     struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
-
+    
     if(!is_slice(dom)){
         nonslice_setup_pmp(dom_ptr);
         return 0;
     }
     ret = slice_setup_pmp(dom_ptr);
-
-    if (dom->boot_hartid != current_hartid()) {
-        return ret;
-    }
     if(ret){
         return ret;
     }
-    //zero_domain_memory(dom_ptr);
+    if (dom->boot_hartid != current_hartid()) {
+        return ret;
+    }
+    zero_slice_memory(dom_ptr);
     load_next_stage(dom_ptr);
     ret = slice_create_domain_fdt(dom_ptr);
     if(ret){
@@ -76,7 +77,8 @@ int slice_setup_domain(void *dom_ptr)
     }
     sbi_scratch_thishart_ptr()->next_arg1 = dom->next_arg1;
     sbi_scratch_thishart_ptr()->next_addr = dom->next_addr;
-
+    unsigned long end_slice_tick = csr_read(CSR_MCYCLE);
+	sbi_printf("%s: hart %d: #ticks: %lu\n", __func__, current_hartid(), end_slice_tick-start_slice_tick);
     return ret;
     // TODO(ziqiao): relocate scratches and hart states to domain memory.
 }
@@ -118,4 +120,13 @@ void *slice_allocate_domain(struct sbi_hartmask * input_mask)
     dom->slice_type = SLICE_TYPE_SLICE;
     inc_domain_counter();
     return dom;
+}
+
+void dump_slice_config(const struct sbi_domain *dom)
+{
+	sbi_printf("slicetype = %d\n", dom->slice_type);
+    sbi_printf("next_boot_src = %lx\n", dom->next_boot_src);
+    sbi_printf("next_boot_size = %lx\n", (unsigned long) dom->next_boot_size);
+    sbi_printf("slice_dt_src = %lx\n", (unsigned long)dom->slice_dt_src);
+    sbi_printf("dom_mem_size = %lx\n", dom->dom_mem_size);
 }

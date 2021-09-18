@@ -38,6 +38,10 @@
 	"        | |\n"                                     \
 	"        |_|\n\n"
 
+#define MAX_NUM_HARTS 8
+ulong endInitTicks [MAX_NUM_HARTS] ;
+ulong startInitTicks[MAX_NUM_HARTS];
+
 static void sbi_boot_print_banner(struct sbi_scratch *scratch)
 {
 	if (scratch->options & SBI_SCRATCH_NO_BOOT_PRINTS)
@@ -341,6 +345,10 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	(*init_count)++;
 
 	sbi_hsm_prepare_next_jump(scratch, hartid);
+	endInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
+	sbi_printf("hart %d: #ticks in sbi_init before switching to S mode: %lu\n",current_hartid(),
+		   endInitTicks[current_hartid()] -
+			   startInitTicks[current_hartid()]);
 	sbi_hart_switch_mode(hartid, scratch->next_arg1, scratch->next_addr,
 			     scratch->next_mode, FALSE);
 }
@@ -415,6 +423,10 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
+	endInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
+	sbi_printf("warm boot hart %d: #ticks in sbi_init before switching to S mode: %lu\n",current_hartid(),
+		   endInitTicks[current_hartid()] -
+			   startInitTicks[current_hartid()]);
 	sbi_hsm_prepare_next_jump(scratch, hartid);
 }
 
@@ -473,6 +485,7 @@ static atomic_t coldboot_lottery = ATOMIC_INITIALIZER(0);
  */
 void __noreturn sbi_init(struct sbi_scratch *scratch)
 {
+	startInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
 	bool next_mode_supported	= FALSE;
 	bool coldboot			= FALSE;
 	u32 hartid			= current_hartid();
