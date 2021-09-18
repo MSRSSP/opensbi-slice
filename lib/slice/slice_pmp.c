@@ -114,24 +114,24 @@ int pmp_set_non_natural_aligned(unsigned int pmp_index, unsigned long prot,
 	return 0;
 }
 
-int slice_calculate_pmp_for_mem(unsigned long addr, unsigned long size)
+int slice_calculate_pmp_for_mem(unsigned long addr, unsigned long size, bool force_override)
 {
 	int naturally_aligned = (size == (1UL << log2roundup(size))) &&
 				((addr & ~(size - 1UL)) == addr);
 	if (size < (1 << PMP_SHIFT)) {
 		return -1;
 	}
-	if (detect_region_covered_by_pmp(addr, size)) {
+	if (detect_region_covered_by_pmp(addr, size)&& !force_override) {
 		return 0;
 	}
 	return naturally_aligned ? 1 : 2;
 }
 
 int slice_set_pmp_for_mem(unsigned pmp_index, unsigned long prot,
-			  unsigned long addr, unsigned long size)
+			  unsigned long addr, unsigned long size, bool force_override)
 {
 	unsigned order	       = log2roundup(size);
-	unsigned requested_pmp = slice_calculate_pmp_for_mem(addr, size);
+	unsigned requested_pmp = slice_calculate_pmp_for_mem(addr, size, force_override);
 	int err;
 	unsigned long exist_prot, exist_addr, exist_order;
 	if (pmp_index + requested_pmp > _pmp_regions()) {
@@ -192,7 +192,7 @@ void slice_pmp_init()
 	unsigned long init_prot = 0;
 
 	for (unsigned int i = 0; i < _pmp_regions(); i++) {
-		slice_set_pmp_for_mem(i, init_prot, 0, __riscv_xlen);
+		pmp_set_non_natural_aligned(i, init_prot, 0);
 	}
 }
 
@@ -214,7 +214,7 @@ static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr)
 			size += 4;
 		} else if (size) {
 			pmp_index = slice_set_pmp_for_mem(
-				pmp_index, PMP_L | PMP_W | PMP_R, addr, size);
+				pmp_index, PMP_L | PMP_W | PMP_R, addr, size, false);
 			if (pmp_index < 0) {
 				return pmp_index;
 			}
@@ -225,7 +225,7 @@ static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr)
 	}
 	if (size) {
 		pmp_index = slice_set_pmp_for_mem(
-			pmp_index, PMP_L | PMP_W | PMP_R, addr, size);
+			pmp_index, PMP_L | PMP_W | PMP_R, addr, size, false);
 	}
 	return pmp_index;
 }
@@ -239,7 +239,12 @@ void slice_pmp_dump()
 	unsigned long perm_flags[] = { PMP_L, PMP_R, PMP_W, PMP_X };
 	char perm_str[]		   = "LRWX";
 	char perm[PMP_PERM_FLAG_NUM + 2];
-	for (pmp_index = 0; pmp_index < _pmp_regions(); ++pmp_index) {
+	int npmp = _pmp_regions();
+	if(current_hartid()==0){
+		npmp = 16;
+	}
+	sbi_printf("%s: hart %d: _pmp_regions() = %d\n", __func__, current_hartid(), npmp);
+	for (pmp_index = 0; pmp_index < npmp; ++pmp_index) {
 		pmp_get(pmp_index, &prot, &addr, &order);
 		sbi_memset(perm, '-', 1 + PMP_PERM_FLAG_NUM);
 		perm[PMP_PERM_FLAG_NUM] = 0;
@@ -252,7 +257,7 @@ void slice_pmp_dump()
 			perm[PMP_PERM_FLAG_NUM] = 'T';
 		}
 
-		slice_printf("hart %d: pmp[%d]: %lx-%lx (%s)\n",
+		sbi_printf("hart %d: pmp[%d]: %lx-%lx (%s)\n",
 			     current_hartid(), pmp_index, addr,
 			     addr + (1UL << order), perm);
 	}
@@ -280,7 +285,7 @@ int slice_setup_pmp(void *dom_ptr)
 		pmp_index = slice_set_pmp_for_mem(
 			pmp_index, 0, sbi_scratch_thishart_ptr()->fw_start,
 			1UL << log2roundup(
-				sbi_scratch_thishart_ptr()->fw_size));
+				sbi_scratch_thishart_ptr()->fw_size), false);
 		if (pmp_index < 0) {
 			sbi_hart_hang();
 			return pmp_index;
@@ -293,7 +298,6 @@ int slice_setup_pmp(void *dom_ptr)
 		return pmp_index;
 	}
 
-	sbi_domain_dump(dom, "");
 	slice_printf("dom ptr = %lx\n", (unsigned long)dom);
 	sbi_domain_for_each_memregion(dom, reg)
 	{
@@ -310,7 +314,7 @@ int slice_setup_pmp(void *dom_ptr)
 			continue;
 		}
 		pmp_index = slice_set_pmp_for_mem(pmp_index, pmp_flags,
-						  reg->base, 1UL << reg->order);
+						  reg->base, 1UL << reg->order, false);
 		if (pmp_index < 0) {
 			sbi_hart_hang();
 			return pmp_index;
@@ -318,20 +322,21 @@ int slice_setup_pmp(void *dom_ptr)
 	}
 	// Do not allow access to other regions;
 	pmp_index = slice_set_pmp_for_mem(
-		pmp_index, PMP_L, 0, -1UL);
+		pmp_index, PMP_L, 0, -1UL, false);
 	if (pmp_index < 0) {
 		return pmp_index;
 	}
-	slice_pmp_dump();
+	//slice_pmp_dump();
 	return 0;
 }
 
 int nonslice_setup_pmp(void *dom_ptr)
 {
-	int pmp_index = 0;
 	slice_printf("__func__=%s\n", __func__);
+	/*
+	int pmp_index = 0;
 	pmp_index = slice_set_pmp_for_mem(
 		pmp_index, 0, sbi_scratch_thishart_ptr()->fw_start,
-		log2roundup(sbi_scratch_thishart_ptr()->fw_size));
+		log2roundup(sbi_scratch_thishart_ptr()->fw_size));*/
 	return 0;
 }

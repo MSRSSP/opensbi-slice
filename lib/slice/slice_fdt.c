@@ -48,11 +48,9 @@ void slice_print_fdt(const void * fdt){
 }
 
 void copy_fdt(const void * src_fdt, void * dst_fdt){
-    if(dst_fdt==0){
-        return;
-    }
-    if(fdt_totalsize(dst_fdt)==0 && (long)src_fdt != (long)dst_fdt){
-        slice_printf("duplicate %lx -> %lx", (unsigned long)src_fdt, (unsigned long)dst_fdt);
+    slice_printf("copy_fdt %lx -> %lx\n", (unsigned long)src_fdt, (unsigned long)dst_fdt);
+    if(dst_fdt && (fdt_totalsize(src_fdt)!=0)){
+        slice_printf("duplicate %lx -> %lx\n", (unsigned long)src_fdt, (unsigned long)dst_fdt);
         sbi_memcpy(dst_fdt, src_fdt, fdt_totalsize(src_fdt) );
     }
 }
@@ -173,6 +171,5 @@ int slice_create_domain_fdt(const void * dom_ptr){
     slice_printf("%s: --fdt_fixups \n", __func__);
     fdt_domain_fixup(fdt, dom_ptr);
     slice_printf("%s: --fdt_domain_fixup \n", __func__);
-    //slice_print_fdt(fdt);
     return 0;
 }

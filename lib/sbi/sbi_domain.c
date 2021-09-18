@@ -387,6 +387,7 @@ void sbi_domain_dump(const struct sbi_domain *dom, const char *suffix)
 
 	sbi_printf("Domain%d SysReset    %s: %s\n",
 		   dom->index, suffix, (dom->system_reset_allowed) ? "yes" : "no");
+	dump_slice_config(dom);
 }
 
 void sbi_domain_dump_all(const char *suffix)

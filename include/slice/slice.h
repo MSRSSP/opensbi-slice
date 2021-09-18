@@ -36,6 +36,8 @@ int slice_is_domain_boot_hart(int hartid);
 */
 int slice_setup_domain(void * dom_ptr);
 
+void dump_slice_config(const struct sbi_domain * dom_ptr);
+
 struct slice_config{
   enum slice_type slice_type;
   // source address of device tree for this slice;
@@ -54,6 +56,6 @@ struct slice_config{
   unsigned long dom_mem_size;
 };
 
-#define slice_printf sbi_printf
-
+//#define slice_printf sbi_printf
+#define slice_printf(x, ...) {}
 #endif // __D_H__
