@@ -535,22 +535,6 @@ int sbi_domain_root_add_memregion(const struct sbi_domain_memregion *reg)
 	return 0;
 }
 
-static void relocate_fdt(void){
-	int index;
-	const struct sbi_domain * domain;
-	sbi_domain_for_each(index, domain){
-		const void * src_fdt = (const void *)sbi_scratch_thishart_arg1_ptr();
-		void * dst_fdt=(void*)domain->next_arg1;
-		sbi_printf("domain index %d, relocate fdt(size=%d): %lx -> %lx, ref %lx\n", index, fdt_totalsize(src_fdt), (long)src_fdt, (long)dst_fdt, (long)sbi_scratch_thishart_arg1_ptr());
-		if(dst_fdt==0){
-			continue;
-		}
-		if(fdt_totalsize(dst_fdt)==0 && (long)src_fdt != (long)dst_fdt){
-			sbi_memcpy(dst_fdt, src_fdt, fdt_totalsize(src_fdt) );
-		}
-	}
-}
-
 int sbi_domain_finalize(struct sbi_scratch *scratch, u32 cold_hartid)
 {
 	int rc;
@@ -565,8 +549,6 @@ int sbi_domain_finalize(struct sbi_scratch *scratch, u32 cold_hartid)
 			   __func__, rc);
 		return rc;
 	}
-
-	relocate_fdt();
 
 	/* Startup boot HART of domains */
 	sbi_domain_for_each(i, dom) {
