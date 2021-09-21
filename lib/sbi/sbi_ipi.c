@@ -19,6 +19,8 @@
 #include <sbi/sbi_init.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_platform.h>
+#include <sbi/sbi_console.h>
+#include <slice/slice_mgr.h>
 
 struct sbi_ipi_data {
 	unsigned long ipi_type;
@@ -87,6 +89,12 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 		if (rc)
 			return rc;
 		m &= hmask;
+
+		if ((current_hartid() == slice_host_hartid())) {
+			m = hmask;
+			sbi_printf("%s: host hart%d sends IPI(%d)\n", __func__,
+				   current_hartid(), event);
+		}
 
 		/* Send IPIs */
 		for (i = hbase; m; i++, m >>= 1) {
@@ -238,6 +246,7 @@ int sbi_ipi_init(struct sbi_scratch *scratch, bool cold_boot)
 		if (ret < 0)
 			return ret;
 		ipi_halt_event = ret;
+		slice_ipi_register();
 	} else {
 		if (!ipi_data_off)
 			return SBI_ENOMEM;

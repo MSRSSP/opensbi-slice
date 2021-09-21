@@ -48,6 +48,7 @@
 struct sbi_domain_memregion;
 struct sbi_trap_info;
 struct sbi_trap_regs;
+struct sbi_domain;
 
 /** Possible feature flags of a platform */
 enum sbi_platform_features {
@@ -117,6 +118,7 @@ struct sbi_platform_operations {
 				   const struct sbi_trap_regs *regs,
 				   unsigned long *out_value,
 				   struct sbi_trap_info *out_trap);
+	int (*slice_init_mem_region)(struct sbi_domain *dom);
 };
 
 /** Platform default per-HART stack size for exception/interrupt handling */

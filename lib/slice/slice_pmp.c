@@ -9,6 +9,13 @@
 #include <slice/slice.h>
 #include <slice/slice_err.h>
 
+#define CONFIG_SLICE_SW_RESET 1
+#ifdef CONFIG_SLICE_SW_RESET
+#define SLICE_PMP_L 0x0
+#else
+#define SLICE_PMP_L PMP_L
+#endif
+
 // don't allow OpenSBI to play with PMPs
 int sbi_hart_pmp_configure(struct sbi_scratch *pScratch)
 {
@@ -155,7 +162,7 @@ int slice_set_pmp_for_mem(unsigned pmp_index, unsigned long prot,
 			pmp_index + requested_pmp, addr, size, prot);
 		exist_prot = 0;
 		pmp_get(pmp_index, &exist_prot, &exist_addr, &exist_order);
-		if ((exist_prot & PMP_L) == PMP_L) {
+		if (SLICE_PMP_L && ((exist_prot & SLICE_PMP_L) == SLICE_PMP_L)) {
 			slice_printf(
 				"pmp exists: %s:hart %d, set %d pmp[%d:%d]: mem(%lx, 1<<%lx), prot=%lx\n",
 				__func__, current_hartid(), requested_pmp,
@@ -214,7 +221,7 @@ static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr)
 			size += 4;
 		} else if (size) {
 			pmp_index = slice_set_pmp_for_mem(
-				pmp_index, PMP_L | PMP_W | PMP_R, addr, size, false);
+				pmp_index, SLICE_PMP_L | PMP_W | PMP_R, addr, size, false);
 			if (pmp_index < 0) {
 				return pmp_index;
 			}
@@ -225,7 +232,7 @@ static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr)
 	}
 	if (size) {
 		pmp_index = slice_set_pmp_for_mem(
-			pmp_index, PMP_L | PMP_W | PMP_R, addr, size, false);
+			pmp_index, SLICE_PMP_L | PMP_W | PMP_R, addr, size, false);
 	}
 	return pmp_index;
 }
@@ -236,7 +243,7 @@ void slice_pmp_dump()
 {
 	unsigned pmp_index;
 	unsigned long prot, addr, order;
-	unsigned long perm_flags[] = { PMP_L, PMP_R, PMP_W, PMP_X };
+	unsigned long perm_flags[] = { SLICE_PMP_L, PMP_R, PMP_W, PMP_X };
 	char perm_str[]		   = "LRWX";
 	char perm[PMP_PERM_FLAG_NUM + 2];
 	int npmp = _pmp_regions();
@@ -303,14 +310,14 @@ int slice_setup_pmp(void *dom_ptr)
 	{
 		slice_printf("%s: hart %d: mem region (%lx, %lx)\n", __func__,
 			     current_hartid(), reg->base, reg->order);
-		pmp_flags = PMP_L;
+		pmp_flags = SLICE_PMP_L;
 		if (reg->flags & SBI_DOMAIN_MEMREGION_READABLE)
 			pmp_flags |= PMP_R;
 		if (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE)
 			pmp_flags |= PMP_W;
 		if (reg->flags & SBI_DOMAIN_MEMREGION_EXECUTABLE)
 			pmp_flags |= PMP_X;
-		if (pmp_flags == PMP_L) {
+		if (pmp_flags == SLICE_PMP_L) {
 			continue;
 		}
 		pmp_index = slice_set_pmp_for_mem(pmp_index, pmp_flags,
@@ -322,7 +329,7 @@ int slice_setup_pmp(void *dom_ptr)
 	}
 	// Do not allow access to other regions;
 	pmp_index = slice_set_pmp_for_mem(
-		pmp_index, PMP_L, 0, -1UL, false);
+		pmp_index, SLICE_PMP_L, 0, -1UL, false);
 	if (pmp_index < 0) {
 		return pmp_index;
 	}

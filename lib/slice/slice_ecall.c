@@ -13,7 +13,7 @@
 #include <slice/slice_ecall.h>
 #include <slice/slice_err.h>
 #include <slice/slice_reset.h>
-
+#include <slice/slice_mgr.h>
 
 int cpu_is_host_cpu()
 {
@@ -23,7 +23,7 @@ int cpu_is_host_cpu()
     return 0;
 }
 
-static int sbi_d_reset(unsigned long *out_val, unsigned long dom_index){
+static int slice_sbi_reset(unsigned long *out_val, unsigned long dom_index){
     *out_val = dom_index;
 	struct sbi_domain * dom = sbi_index_to_domain(dom_index);
 	if(dom == NULL){
@@ -34,56 +34,7 @@ static int sbi_d_reset(unsigned long *out_val, unsigned long dom_index){
     return 0;
 }
 
-static int sbi_d_create(unsigned long *out_val, 
-					unsigned long cpu_mask, 
-					unsigned long mem_start, 
-					unsigned long mem_size){
-	struct sbi_hartmask mask;
-	struct sbi_domain* dom;
-	struct sbi_domain_memregion *reg, * regions;
-	unsigned  cpuid=0, count=0, boot_hartid = -1;
-	sbi_hartmask_clear_all(&mask);
-	while(cpu_mask){
-		if(cpu_mask&1){
-			sbi_hartmask_set_hart(cpuid, &mask);
-			boot_hartid = cpuid;
-		}
-		cpu_mask >>= 1;
-		cpuid++;
-	}
-	dom = (struct sbi_domain*) slice_allocate_domain(&mask);
-	dom->boot_hartid = boot_hartid;
-	regions = dom->regions;
-	unsigned long all_perm = SBI_DOMAIN_MEMREGION_MMODE | 
-					SBI_DOMAIN_MEMREGION_READABLE | 
-					SBI_DOMAIN_MEMREGION_WRITEABLE | 
-					SBI_DOMAIN_MEMREGION_EXECUTABLE;
-	sbi_domain_memregion_init(0, 1UL<<31,
-					all_perm, &regions[count++]);
-	sbi_domain_memregion_init(mem_start, mem_size,
-					all_perm, &regions[count++]);
-	//sbi_domain_memregion_init(1UL<<31, 1UL<<31,
-	//				SBI_DOMAIN_MEMREGION_MMODE, &regions[count++]);
-	sbi_domain_for_each_memregion(&root, reg) {
-		if ((reg->flags & SBI_DOMAIN_MEMREGION_READABLE) ||
-		    (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) ||
-		    (reg->flags & SBI_DOMAIN_MEMREGION_EXECUTABLE))
-			continue;
-		if (sbi_hart_pmp_count(sbi_scratch_thishart_ptr()) <= count)
-			return SBI_ERR_SLICE_NO_FREE_RESOURCE;
-		sbi_memcpy(&regions[count++], reg, sizeof(*reg));
-	}
-	dom->next_addr = mem_start;
-	dom->next_arg1 = mem_start + 0x2000000;
-	dom->next_mode = 1;
-	dom->next_boot_src  = 0x84000000;
-	dom->next_boot_size = 0x02000000;
-	sbi_memcpy(dom->stdout_path, "/soc/serial@10010000", 21);
-	dom->stdout_path[21] = 0;
-	return sbi_domain_register(dom, dom->possible_harts);
-}
-
-static int sbi_d_info(unsigned long *out_val, unsigned long index){
+static int slice_sbi_info(unsigned long *out_val, unsigned long index){
 	struct sbi_domain * dom;
 	slice_printf("%s: dom_index=%ld\n", __func__, index);
 	if(index == 0){
@@ -96,7 +47,7 @@ static int sbi_d_info(unsigned long *out_val, unsigned long index){
 	return 0;
 }
 
-static int sbi_d_mem(unsigned long *out_val, unsigned long op_code, unsigned long address, unsigned long data){
+static int slice_sbi_mem(unsigned long *out_val, unsigned long op_code, unsigned long address, unsigned long data){
 	unsigned long * val_ptr = (unsigned long *) address;
 	switch(op_code){
 		case 'w':
@@ -120,16 +71,16 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 	//	return SBI_ERR_SLICE_SBI_PROHIBITED;
 	switch (funcid) {
 	case SBI_SLICE_RESET:
-		retval = sbi_d_reset(out_val, regs->a0);
+		retval = slice_sbi_reset(out_val, regs->a0);
 		break;
 	case SBI_SLICE_CREATE:
-		retval = sbi_d_create(out_val, regs->a0, regs->a1, regs->a2);
+		retval = slice_create(regs->a0, regs->a1, regs->a2, 0x84000000, 0x20000000, root.next_arg1);
 		break;
 	case SBI_SLICE_INFO:
-		retval = sbi_d_info(out_val, regs->a0);
+		retval = slice_sbi_info(out_val, regs->a0);
 		break;
 	case SBI_SLICE_MEM:
-		retval = sbi_d_mem(out_val, regs->a0, regs->a1, regs->a2);
+		retval = slice_sbi_mem(out_val, regs->a0, regs->a1, regs->a2);
 		break;
 	default:
 		retval = SBI_ERR_SLICE_NOT_IMPLEMENTED;
@@ -150,7 +101,7 @@ static int sbi_ecall_iopmp_handler(unsigned long extid, unsigned long funcid,
 
 	switch (funcid) {
 	case SBI_IOPMP_UPDATE:
-		retval = sbi_d_reset(out_val, regs->a0);
+		retval = slice_sbi_reset(out_val, regs->a0);
 		break;
 	case SBI_IOPMP_REMOVE:
 		retval = SBI_ERR_SLICE_NOT_IMPLEMENTED;
