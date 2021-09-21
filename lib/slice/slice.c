@@ -6,12 +6,28 @@
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <slice/slice.h>
 #include <slice/slice_ecall.h>
+#include <slice/slice_err.h>
 #include <slice/slice_pmp.h>
 #include <sbi/riscv_barrier.h>
 
-int is_slice(const struct sbi_domain *dom)
+bool is_slice(const struct sbi_domain *dom)
 {
     return dom->slice_type == SLICE_TYPE_SLICE;
+}
+
+static unsigned int host_hartid = -1;
+
+unsigned int slice_host_hartid(){
+    return host_hartid;
+}
+
+int register_host_hartid(unsigned int hartid){
+    if(host_hartid== -1){
+        host_hartid = hartid;
+    }else{
+        return SBI_ERR_SLICE_UNKNOWN_ERROR;
+    }
+    return 0;
 }
 
 int slice_is_domain_boot_hart(int hartid)
@@ -21,7 +37,9 @@ int slice_is_domain_boot_hart(int hartid)
 	return (dom->boot_hartid == hartid) ? 1 : 0;
 }
 
+
 static void load_next_stage(const void * dom_ptr){
+    unsigned long startTicks = csr_read(CSR_MCYCLE);
     const struct sbi_domain * dom = (struct sbi_domain *) dom_ptr;
     void * dst = (void *) dom->next_addr;
     void * src = (void *) dom->next_boot_src;
@@ -33,6 +51,8 @@ static void load_next_stage(const void * dom_ptr){
 			 dom->next_boot_src, dom->next_addr, dom->next_boot_size);
 	    sbi_memcpy(dst, src, dom->next_boot_size);
     }
+    sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
+		   csr_read(CSR_MCYCLE) - startTicks);
 }
 
 static void zero_slice_memory(void * dom_ptr){

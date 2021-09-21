@@ -56,6 +56,12 @@ struct slice_config{
   unsigned long dom_mem_size;
 };
 
-//#define slice_printf sbi_printf
-#define slice_printf(x, ...) {}
+bool is_slice();
+
+unsigned int slice_host_hartid();
+
+int register_host_hartid(unsigned int hartid);
+
+#define slice_printf sbi_printf
+//#define slice_printf(x, ...) {}
 #endif // __D_H__

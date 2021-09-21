@@ -48,11 +48,13 @@ void slice_print_fdt(const void * fdt){
 }
 
 void copy_fdt(const void * src_fdt, void * dst_fdt){
-    slice_printf("copy_fdt %lx -> %lx\n", (unsigned long)src_fdt, (unsigned long)dst_fdt);
+    unsigned long startTicks = csr_read(CSR_MCYCLE);
     if(dst_fdt && (fdt_totalsize(src_fdt)!=0)){
         slice_printf("duplicate %lx -> %lx\n", (unsigned long)src_fdt, (unsigned long)dst_fdt);
         sbi_memcpy(dst_fdt, src_fdt, fdt_totalsize(src_fdt) );
     }
+    sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
+		   csr_read(CSR_MCYCLE) - startTicks);
 }
 
 static const struct fdt_match riscv_cpu_match[] = {
