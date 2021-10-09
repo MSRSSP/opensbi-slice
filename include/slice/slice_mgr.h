@@ -5,6 +5,8 @@
 enum SliceIPIFuncId{
     SLICE_IPI_NONE,
     SLICE_IPI_SW_STOP,
+    SLICE_IPI_PMP_DEBUG,
+    SLICE_IPI_FDT_DEBUG,
 };
 
 struct SliceIPIData{

@@ -1,5 +1,5 @@
-#CROSS_COMPILE=riscv64-unknown-linux-gnu-
-CROSS_COMPILE=riscv64-linux-gnu-
+CROSS_COMPILE=riscv64-unknown-linux-gnu-
+#CROSS_COMPILE=riscv64-linux-gnu-
 CC=$(CROSS_COMPILE)gcc
 AR=$(CROSS_COMPILE)ar
 compile_cc = mkdir -p `dirname $(1)`; \

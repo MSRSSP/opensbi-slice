@@ -90,6 +90,13 @@ static void sbi_ipi_process_slice_op(struct sbi_scratch *scratch)
 			slice_reset_regs(sbi_scratch_thishart_ptr()->fw_start,
 					 PRV_M);
 			break;
+		// DEBUG-purpose
+		case SLICE_IPI_PMP_DEBUG:
+			slice_ipi_data[src_index][dst_hart].func_id =
+				SLICE_IPI_NONE;
+			slice_printf("%s: hart %d\n", __func__, dst_hart);
+			slice_pmp_dump();
+			break;
 		case SLICE_IPI_NONE:
 		default:
 			break;

@@ -264,9 +264,9 @@ void slice_pmp_dump()
 			perm[PMP_PERM_FLAG_NUM] = 'T';
 		}
 
-		sbi_printf("hart %d: pmp[%d]: %lx-%lx (%s)\n",
+		sbi_printf("hart %d: pmp[%d]: %lx-%lx (prot = %lx %s) \n",
 			     current_hartid(), pmp_index, addr,
-			     addr + (1UL << order), perm);
+			     addr + (1UL << order), prot, perm);
 	}
 }
 
