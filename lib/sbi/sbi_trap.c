@@ -288,14 +288,6 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 trap_error:
 	if (rc) {
 		switch (mcause) {
-		case CAUSE_LOAD_ACCESS:
-		case CAUSE_STORE_ACCESS:
-			dump_trap_error(msg, rc, mcause, mtval, mtval2, mtinst,
-					regs);
-			sbi_printf("Ignore the error and move to next pc.\n");
-			regs->mepc += 4;
-			regs->a0 = rc;
-			break;
 		default:
 			sbi_trap_error(msg, rc, mcause, mtval, mtval2, mtinst,
 				       regs);
