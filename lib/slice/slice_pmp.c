@@ -9,8 +9,8 @@
 #include <slice/slice.h>
 #include <slice/slice_err.h>
 
-#define CONFIG_SLICE_SW_RESET 1
-#ifdef CONFIG_SLICE_SW_RESET
+#define CONFIG_SLICE_SW_RESET 0
+#if CONFIG_SLICE_SW_RESET
 #define SLICE_PMP_L 0x0
 #else
 #define SLICE_PMP_L PMP_L
@@ -130,6 +130,9 @@ int slice_calculate_pmp_for_mem(unsigned long addr, unsigned long size, bool for
 	}
 	if (detect_region_covered_by_pmp(addr, size)&& !force_override) {
 		return 0;
+	}
+	if(size == -1UL){
+		return 1;
 	}
 	return naturally_aligned ? 1 : 2;
 }
@@ -282,22 +285,15 @@ int slice_setup_pmp(void *dom_ptr)
 	// and lock this before entering S mode;
 	slice_pmp_init();
 
-	if (sbi_scratch_thishart_ptr()->fw_start &&
-	    sbi_scratch_thishart_ptr()->fw_size) {
-		slice_printf("hartid=%d, pmp set up for fw: %lx %lx\n",
-			     current_hartid(),
-			     sbi_scratch_thishart_ptr()->fw_start,
-			     1UL << log2roundup(
-				     sbi_scratch_thishart_ptr()->fw_size));
-		pmp_index = slice_set_pmp_for_mem(
-			pmp_index, 0, sbi_scratch_thishart_ptr()->fw_start,
-			1UL << log2roundup(
-				sbi_scratch_thishart_ptr()->fw_size), false);
-		if (pmp_index < 0) {
-			sbi_hart_hang();
-			return pmp_index;
-		}
+	// Manually added rule to disallow access to original sbi.
+	// Each slice only uses its own sbi copy.
+	pmp_index = slice_set_pmp_for_mem(
+			pmp_index, SLICE_PMP_L, 0x8000000, 1UL<<24, false);
+	if (pmp_index < 0) {
+		sbi_hart_hang();
+		return pmp_index;
 	}
+
 	pmp_index = slice_setup_pmp_for_ipi(pmp_index, dom_ptr);
 	// Set up allowed domain memory regions.
 	if (pmp_index < 0) {
@@ -333,17 +329,15 @@ int slice_setup_pmp(void *dom_ptr)
 	if (pmp_index < 0) {
 		return pmp_index;
 	}
-	//slice_pmp_dump();
 	return 0;
 }
 
 int nonslice_setup_pmp(void *dom_ptr)
 {
 	slice_printf("__func__=%s\n", __func__);
-	/*
 	int pmp_index = 0;
 	pmp_index = slice_set_pmp_for_mem(
-		pmp_index, 0, sbi_scratch_thishart_ptr()->fw_start,
-		log2roundup(sbi_scratch_thishart_ptr()->fw_size));*/
+		pmp_index, PMP_W|PMP_R|PMP_X, 0, -1UL, false);
+	slice_pmp_dump();
 	return 0;
 }

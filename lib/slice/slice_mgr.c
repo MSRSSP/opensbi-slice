@@ -19,8 +19,8 @@
 // when multiple src harts tries to send IPI to it;
 struct SliceIPIData slice_ipi_data[MAX_HART_NUM][MAX_HART_NUM];
 
-void __attribute__((noreturn))
-slice_reset_regs(unsigned long next_addr, unsigned long next_mode)
+static void __attribute__((noreturn))
+slice_jump(unsigned long next_addr, unsigned long next_mode)
 {
 #if __riscv_xlen == 32
 	unsigned long val, valH;
@@ -87,7 +87,7 @@ static void sbi_ipi_process_slice_op(struct sbi_scratch *scratch)
 				SLICE_IPI_NONE;
 			slice_printf("%s: hart %d\n", __func__, dst_hart);
 			slice_pmp_init();
-			slice_reset_regs(sbi_scratch_thishart_ptr()->fw_start,
+			slice_jump(sbi_scratch_thishart_ptr()->fw_start,
 					 PRV_M);
 			break;
 		// DEBUG-purpose
@@ -169,7 +169,7 @@ int slice_create(unsigned long cpu_mask, unsigned long mem_start,
 	dom->next_boot_src  = image_from;
 	dom->next_boot_size = image_size;
 	dom->slice_dt_src   = (void *)fdt_from;
-	dom->dom_mem_size = mem_size;
+	dom->slice_mem_size = mem_size;
 	if(sbi_platform_ops(plat)->slice_init_mem_region){
 		sbi_platform_ops(plat)->slice_init_mem_region(dom);
 	}

@@ -36,6 +36,10 @@ int slice_is_domain_boot_hart(int hartid);
 */
 int slice_setup_domain(void * dom_ptr);
 
+// Jump to slice's sbi stage.
+void __attribute__((noreturn)) 
+slice_to_sbi(void* slice_mem_start, void* slice_sbi_start, unsigned long slice_sbi_size);
+
 void dump_slice_config(const struct sbi_domain * dom_ptr);
 
 struct slice_config{
@@ -53,10 +57,13 @@ struct slice_config{
   unsigned next_boot_size;
   /** default stdio **/
 	char stdout_path[64];
-  unsigned long dom_mem_size;
+  unsigned long slice_mem_start;
+  unsigned long slice_mem_size;
+  unsigned long slice_sbi_start;
+  unsigned long slice_sbi_size;
 };
 
-bool is_slice();
+bool is_slice(const struct sbi_domain *dom);
 
 unsigned int slice_host_hartid();
 
