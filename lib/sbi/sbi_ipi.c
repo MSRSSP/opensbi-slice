@@ -30,6 +30,34 @@ static unsigned long ipi_data_off;
 static const struct sbi_ipi_device *ipi_dev = NULL;
 static const struct sbi_ipi_event_ops *ipi_ops_array[SBI_IPI_EVENT_MAX];
 
+static struct sbi_ipi_data * get_ipi_data(u32 hartid){
+	struct sbi_ipi_data * ipi_data;
+	struct sbi_scratch *remote_scratch = NULL;
+	const struct sbi_domain * remote_dom = sbi_hartid_to_domain(hartid);
+	if(remote_dom && remote_dom->slice_type == SLICE_TYPE_SLICE){
+		ipi_data = slice_ipi_data_ptr(hartid);
+	}else{
+		remote_scratch = sbi_hartid_to_scratch(hartid);
+		ipi_data = sbi_scratch_offset_ptr(remote_scratch, ipi_data_off);
+	}
+	return ipi_data;
+}
+
+static int sbi_alloc_ipi_data(){
+	const struct sbi_domain * dom = sbi_domain_thishart_ptr();
+	if(false && dom && dom->slice_type != SLICE_TYPE_SLICE)
+	{
+		ipi_data_off = sbi_scratch_alloc_offset(sizeof(struct sbi_ipi_data));
+		if (!ipi_data_off)
+			return SBI_ENOMEM;
+	}
+	return 0;
+}
+
+static bool sbi_ipi_data_exists(){
+	return (sbi_domain_thishart_ptr() &&sbi_domain_thishart_ptr()->slice_type == SLICE_TYPE_SLICE) || (ipi_data_off>0);
+}
+
 static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
 			u32 event, void *data)
 {
@@ -43,12 +71,8 @@ static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
 		return SBI_EINVAL;
 	ipi_ops = ipi_ops_array[event];
 
+	ipi_data = get_ipi_data(remote_hartid);
 	remote_scratch = sbi_hartid_to_scratch(remote_hartid);
-	if (!remote_scratch)
-		return SBI_EINVAL;
-
-	ipi_data = sbi_scratch_offset_ptr(remote_scratch, ipi_data_off);
-
 	if (ipi_ops->update) {
 		ret = ipi_ops->update(scratch, remote_scratch,
 				      remote_hartid, data);
@@ -63,8 +87,9 @@ static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
 	atomic_raw_set_bit(event, &ipi_data->ipi_type);
 	smp_wmb();
 
-	if (ipi_dev && ipi_dev->ipi_send)
+	if (ipi_dev && ipi_dev->ipi_send){
 		ipi_dev->ipi_send(remote_hartid);
+	}
 
 	if (ipi_ops->sync)
 		ipi_ops->sync(scratch);
@@ -92,8 +117,8 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 
 		if ((current_hartid() == slice_host_hartid())) {
 			m = hmask;
-			sbi_printf("%s: host hart%d sends IPI(%d)\n", __func__,
-				   current_hartid(), event);
+			sbi_printf("%s: host hart%d sends IPI(%d) mask = %lx\n", __func__,
+				   current_hartid(), event, hmask);
 		}
 
 		/* Send IPIs */
@@ -187,8 +212,8 @@ void sbi_ipi_process(void)
 	unsigned int ipi_event;
 	const struct sbi_ipi_event_ops *ipi_ops;
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
-	struct sbi_ipi_data *ipi_data =
-			sbi_scratch_offset_ptr(scratch, ipi_data_off);
+	struct sbi_ipi_data *ipi_data; 
+	ipi_data = get_ipi_data(current_hartid());
 	u32 hartid = current_hartid();
 
 	if (ipi_dev && ipi_dev->ipi_clear)
@@ -223,8 +248,10 @@ const struct sbi_ipi_device *sbi_ipi_get_device(void)
 
 void sbi_ipi_set_device(const struct sbi_ipi_device *dev)
 {
-	if (!dev || ipi_dev)
+	if (!dev || ipi_dev){
+		sbi_printf("%s: failed dev=%lx, ipi_dev =%lx\n", __func__, (unsigned long)dev, (unsigned long)ipi_dev);
 		return;
+	}
 
 	ipi_dev = dev;
 }
@@ -235,9 +262,7 @@ int sbi_ipi_init(struct sbi_scratch *scratch, bool cold_boot)
 	struct sbi_ipi_data *ipi_data;
 
 	if (cold_boot) {
-		ipi_data_off = sbi_scratch_alloc_offset(sizeof(*ipi_data));
-		if (!ipi_data_off)
-			return SBI_ENOMEM;
+		ret = sbi_alloc_ipi_data();
 		ret = sbi_ipi_event_create(&ipi_smode_ops);
 		if (ret < 0)
 			return ret;
@@ -248,14 +273,14 @@ int sbi_ipi_init(struct sbi_scratch *scratch, bool cold_boot)
 		ipi_halt_event = ret;
 		slice_ipi_register();
 	} else {
-		if (!ipi_data_off)
+		if (!sbi_ipi_data_exists())
 			return SBI_ENOMEM;
 		if (SBI_IPI_EVENT_MAX <= ipi_smode_event ||
 		    SBI_IPI_EVENT_MAX <= ipi_halt_event)
 			return SBI_ENOSPC;
 	}
 
-	ipi_data = sbi_scratch_offset_ptr(scratch, ipi_data_off);
+	ipi_data = get_ipi_data(current_hartid());
 	ipi_data->ipi_type = 0x00;
 
 	/*

@@ -26,8 +26,8 @@ int slice_create_domain_fdt(const void * dom_ptr);
 /* Print domain fdt information.*/
 void slice_print_fdt(const void * fdt);
 
-/* Check whether the hart is a domain boot hart;*/
-int slice_is_domain_boot_hart(int hartid);
+/* Return slice boot hart if this hart belongs to a slice.*/
+int slice_boot_hart(void);
 
 /* Prepare domain memory region.
   1. Erase memory content;

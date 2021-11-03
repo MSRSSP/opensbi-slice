@@ -209,7 +209,7 @@ int sbi_hsm_init(struct sbi_scratch *scratch, u32 hartid, bool cold_boot)
 				    SBI_HSM_STATE_START_PENDING :
 				    SBI_HSM_STATE_STOPPED);
 		}
-	} else if(slice_is_domain_boot_hart(hartid)){
+	} else if(slice_boot_hart() == hartid){
 		/* Initialize the HSM states in a domain;
 
 		Only domain boot hart can initialize the hsm state for other harts;

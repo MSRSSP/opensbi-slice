@@ -9,7 +9,7 @@
 #include <slice/slice.h>
 #include <slice/slice_err.h>
 
-#define CONFIG_SLICE_SW_RESET 0
+#define CONFIG_SLICE_SW_RESET 1
 #if CONFIG_SLICE_SW_RESET
 #define SLICE_PMP_L 0x0
 #else
@@ -329,6 +329,7 @@ int slice_setup_pmp(void *dom_ptr)
 	if (pmp_index < 0) {
 		return pmp_index;
 	}
+	slice_pmp_dump();
 	return 0;
 }
 

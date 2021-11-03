@@ -37,11 +37,14 @@ int register_host_hartid(unsigned int hartid)
 	return 0;
 }
 
-int slice_is_domain_boot_hart(int hartid)
+int slice_boot_hart(void)
 {
 	struct sbi_domain *dom =
-		(struct sbi_domain *)sbi_hartid_to_domain(hartid);
-	return (dom->boot_hartid == hartid) ? 1 : 0;
+		(struct sbi_domain *)sbi_domain_thishart_ptr();
+	if(dom->slice_type != SLICE_TYPE_SLICE){
+		return -1;
+	}
+	return dom->boot_hartid;
 }
 
 
@@ -65,6 +68,7 @@ static void load_next_stage(const void *dom_ptr)
 		   csr_read(CSR_MCYCLE) - startTicks);
 }
 
+/*
 static void zero_slice_memory(void *dom_ptr)
 {
 	unsigned long startTicks = csr_read(CSR_MCYCLE);
@@ -77,7 +81,7 @@ static void zero_slice_memory(void *dom_ptr)
 	sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
 		   csr_read(CSR_MCYCLE) - startTicks);
 }
-
+*/
 
 static void __attribute__((noreturn))
 slice_jump_sbi(unsigned long next_addr, unsigned long next_mode)
@@ -173,7 +177,8 @@ int slice_setup_domain(void *dom_ptr)
 	if (dom->boot_hartid != current_hartid()) {
 		return ret;
 	}
-	zero_slice_memory(dom_ptr);
+	// cleared by slice bootloader before sbi_init
+	//zero_slice_memory(dom_ptr);
 	load_next_stage(dom_ptr);
 	ret = slice_create_domain_fdt(dom_ptr);
 	if (ret) {

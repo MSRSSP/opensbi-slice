@@ -14,6 +14,7 @@ struct SliceIPIData{
     void* data;
 };
 
+struct sbi_ipi_data * slice_ipi_data_ptr(u32 hartid);
 void slice_send_ipi_to_domain(unsigned int dom_index, enum SliceIPIFuncId func_id);
 void slice_ipi_register();
 int slice_create(unsigned long cpu_mask, 

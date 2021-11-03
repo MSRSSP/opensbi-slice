@@ -17,7 +17,26 @@
 
 // TODO: Add a lock to avoid dst hart ignors a pending IPI
 // when multiple src harts tries to send IPI to it;
-struct SliceIPIData slice_ipi_data[MAX_HART_NUM][MAX_HART_NUM];
+//struct SliceIPIData slice_ipi_data[MAX_HART_NUM][MAX_HART_NUM];
+struct sbi_ipi_data {
+	unsigned long ipi_type;
+	struct SliceIPIData slice_data[MAX_HART_NUM];
+};
+
+#define SLICE_IPI_DATA_OFFSET 0x180000
+struct sbi_ipi_data * slice_ipi_data_ptr(u32 hartid){
+	const struct sbi_domain * dom = sbi_hartid_to_domain(hartid);
+	// TBD: Use a special memory that is accessible by slice-0 and this slice.
+	// This special memory is located in a slice-0 memory and is shared with slice-k by adding whitelist PMP rule when slice-k starts 
+	unsigned long ptr = (unsigned long)dom->slice_mem_start + SLICE_IPI_DATA_OFFSET + sizeof(struct sbi_ipi_data)*hartid;
+	return (struct sbi_ipi_data *)ptr;
+}
+
+struct SliceIPIData * slice_ipi_slice_data(u32 src, u32 dst){
+	return &slice_ipi_data_ptr(dst)->slice_data[src];
+}
+
+
 
 static void __attribute__((noreturn))
 slice_jump(unsigned long next_addr, unsigned long next_mode)
@@ -71,28 +90,30 @@ slice_jump(unsigned long next_addr, unsigned long next_mode)
 		}
 	}
 	sbi_hsm_hart_stop(sbi_scratch_thishart_ptr(), false);
-	register unsigned long a0 asm("a0") = current_hartid();
-	__asm__ __volatile__("mret" : : "r"(a0));
+	register unsigned long a0 asm("a0") = 0;
+	register unsigned long a1 asm("a1") = 0;
+	__asm__ __volatile__("mret" : : "r"(a0), "r"(a1));
 	__builtin_unreachable();
 }
 
 static void sbi_ipi_process_slice_op(struct sbi_scratch *scratch)
 {
+	slice_printf("%s\n", __func__);
 	unsigned int dst_hart = current_hartid();
-	for (size_t src_index = 0; src_index < sbi_scratch_last_hartid();
-	     ++src_index) {
-		switch (slice_ipi_data[src_index][dst_hart].func_id) {
+	for (size_t src_hart = 0; src_hart < sbi_scratch_last_hartid();
+	     ++src_hart) {
+		switch (slice_ipi_slice_data(src_hart, dst_hart)->func_id) {
 		case SLICE_IPI_SW_STOP:
-			slice_ipi_data[src_index][dst_hart].func_id =
+			slice_ipi_slice_data(src_hart, dst_hart)->func_id =
 				SLICE_IPI_NONE;
 			slice_printf("%s: hart %d\n", __func__, dst_hart);
 			slice_pmp_init();
-			slice_jump(sbi_scratch_thishart_ptr()->fw_start,
-					 PRV_M);
+			slice_pmp_dump();
+			slice_jump(0x8000000, PRV_M);
 			break;
 		// DEBUG-purpose
 		case SLICE_IPI_PMP_DEBUG:
-			slice_ipi_data[src_index][dst_hart].func_id =
+			slice_ipi_slice_data(src_hart,dst_hart)->func_id =
 				SLICE_IPI_NONE;
 			slice_printf("%s: hart %d\n", __func__, dst_hart);
 			slice_pmp_dump();
@@ -126,12 +147,15 @@ void slice_send_ipi_to_domain(unsigned int dom_index,
 {
 	slice_printf("%s: hart%d: dom_index= %d\n", __func__, current_hartid(),
 		     dom_index);
+	if(dom_index<0){
+		return;
+	}
 	unsigned int dst_hart, src_hart = current_hartid();
 	unsigned long hart_mask = 0;
 	struct sbi_domain *dom	= sbi_index_to_domain(dom_index);
 	sbi_hartmask_for_each_hart(dst_hart, &dom->assigned_harts)
 	{
-		slice_ipi_data[src_hart][dst_hart].func_id = func_id;
+		slice_ipi_slice_data(src_hart, dst_hart)->func_id = func_id;
 		hart_mask |= (1 << dst_hart);
 	}
 	sbi_ipi_send_many(hart_mask, 0, ipi_slice_event, NULL);
