@@ -31,7 +31,7 @@ struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid) {
   // TBD: Use a special memory that is accessible by slice-0 and this slice.
   // This special memory is located in a slice-0 memory and is shared with
   // slice-k by adding whitelist PMP rule when slice-k starts
-  if(dom == NULL){
+  if (dom == NULL) {
     sbi_printf("%s: NULL dom\n", __func__);
     sbi_hart_hang();
   }
@@ -159,17 +159,17 @@ static int slice_send_ipi_to_domain(struct sbi_domain *dom,
 
 int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
                  unsigned long mem_size, unsigned long image_from,
-                 unsigned long image_size, unsigned long fdt_from, unsigned long mode) {
+                 unsigned long image_size, unsigned long fdt_from,
+                 unsigned long mode) {
   struct sbi_domain *dom;
   unsigned cpuid = 0, boot_hartid = -1;
   const struct sbi_platform *plat =
       sbi_platform_ptr(sbi_scratch_thishart_ptr());
-  slice_printf("%s: mem=(%lx %lx) image=(%lx %lx) fdt=%lx",
-               __func__, mem_start, mem_size, image_from, image_size,
-               fdt_from);
-  sbi_hartmask_for_each_hart(cpuid, &cpu_mask){
-      boot_hartid = cpuid;
-      break;
+  slice_printf("%s: mem=(%lx %lx) image=(%lx %lx) fdt=%lx", __func__, mem_start,
+               mem_size, image_from, image_size, fdt_from);
+  sbi_hartmask_for_each_hart(cpuid, &cpu_mask) {
+    boot_hartid = cpuid;
+    break;
   }
   dom = (struct sbi_domain *)slice_allocate_domain(&cpu_mask);
   dom->boot_hartid = boot_hartid;
@@ -182,11 +182,11 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
   dom->next_boot_size = image_size;
   dom->slice_dt_src = (void *)fdt_from;
   dom->system_reset_allowed = false;
-    if (sbi_platform_ops(plat)->slice_init_mem_region) {
+  if (sbi_platform_ops(plat)->slice_init_mem_region) {
     sbi_platform_ops(plat)->slice_init_mem_region(dom);
   }
   int err = sbi_domain_register(dom, dom->possible_harts);
-  if(err){
+  if (err) {
     return err;
   }
   return slice_activate(dom);
@@ -213,9 +213,9 @@ int slice_stop(int dom_index) {
     return SBI_ERR_SLICE_SBI_PROHIBITED;
   }
   struct sbi_domain_memregion *region;
-  struct sbi_domain* dom = slice_from_index(dom_index);
-  if(!dom){
-	  return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  struct sbi_domain *dom = slice_from_index(dom_index);
+  if (!dom) {
+    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
   int err = slice_send_ipi_to_domain(dom, SLICE_IPI_SW_STOP);
   if (err) {
