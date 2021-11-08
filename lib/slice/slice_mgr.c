@@ -13,6 +13,7 @@
 #include <slice/slice_err.h>
 #include <slice/slice_mgr.h>
 #include <slice/slice_pmp.h>
+#include <slice/slice_reset.h>
 
 // TODO: Add a lock to avoid dst hart ignors a pending IPI
 // when multiple src harts tries to send IPI to it;
@@ -189,7 +190,24 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
   if (err) {
     return err;
   }
+  if (sbi_platform_ops(plat)->slice_register_hart &&
+      sbi_platform_ops(plat)->slice_register_source) {
+    sbi_platform_ops(plat)->slice_register_hart(
+        "", cpu_mask.bits[0], boot_hartid, mode, dom->slice_mem_start, 0);
+    sbi_platform_ops(plat)->slice_register_source(boot_hartid, image_from,
+                                                  image_size, fdt_from);
+  }
   return slice_activate(dom);
+}
+
+int slice_unregister(struct sbi_domain *dom) {
+  const struct sbi_platform *plat =
+      sbi_platform_ptr(sbi_scratch_thishart_ptr());
+  int ret = 0, hartid;
+  sbi_hartmask_for_each_hart(hartid, &dom->assigned_harts) {
+    sbi_platform_ops(plat)->slice_unregister_hart(hartid);
+  }
+  return ret;
 }
 
 int slice_delete(int dom_index) {
@@ -200,6 +218,7 @@ int slice_delete(int dom_index) {
   }
   struct sbi_domain *dom = sbi_index_to_domain(dom_index);
   slice_freeze(dom);
+  slice_unregister(dom);
   sbi_printf(
       "%s: deleting slice %d in progress. Need a reset to completely free its "
       "resource.",
@@ -234,11 +253,20 @@ int slice_stop(int dom_index) {
       sbi_memset(region, 0, sizeof(*region));
     }
     sbi_memset(dom, 0, sizeof(*dom));
+    sbi_printf("%s: slice %d is deleted.", __func__, dom_index);
     // Move free harts to root domain (slice-host);
     // sbi_hartmask_or(&root.assigned_harts, &root.assigned_harts,
     //		&free_harts);
   }
-  sbi_printf("%s: slice %d is deleted.", __func__, dom_index);
+  return 0;
+}
+
+int slice_hw_reset(int dom_index) {
+  struct sbi_domain *dom = slice_from_index(dom_index);
+  if (!dom) {
+    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  }
+  d_reset_by_hartmask(*dom->possible_harts->bits);
   return 0;
 }
 

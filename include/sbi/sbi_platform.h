@@ -119,6 +119,17 @@ struct sbi_platform_operations {
 				   unsigned long *out_value,
 				   struct sbi_trap_info *out_trap);
 	int (*slice_init_mem_region)(struct sbi_domain *dom);
+	int (*slice_unregister_hart)(unsigned dom);
+	int (*slice_register_hart)(char *pName,
+                                     u32 hartMask,
+                                     int boot_hartid,
+                                     u32 privMode,
+                                     unsigned long mem_start,
+                                     unsigned long mem_size);
+	void (*slice_register_source)(int boot_hartid,
+                              unsigned long boot_src,
+                              size_t boot_size,
+                              unsigned long fdt_src);
 };
 
 /** Platform default per-HART stack size for exception/interrupt handling */

@@ -86,6 +86,7 @@ int slice_is_active(struct sbi_domain* dom);
 int slice_is_existed(struct sbi_domain* dom);
 struct sbi_domain* slice_from_index(unsigned int index);
 struct sbi_domain* active_slice_from_index(unsigned int index);
+void nonslice_sbi_init(void);
 
 #define slice_printf sbi_printf
 //#define slice_printf(x, ...) {}

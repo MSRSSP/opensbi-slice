@@ -9,7 +9,7 @@
 #include <slice/slice.h>
 #include <slice/slice_err.h>
 
-#define CONFIG_SLICE_SW_RESET 1
+#define CONFIG_SLICE_SW_RESET 0
 #if CONFIG_SLICE_SW_RESET
 #define SLICE_PMP_L 0x0
 #else
@@ -318,6 +318,13 @@ int nonslice_setup_pmp(void *dom_ptr) {
   int pmp_index = 0;
   pmp_index =
       slice_set_pmp_for_mem(pmp_index, PMP_W | PMP_R | PMP_X, 0, -1UL, false);
+  slice_pmp_dump();
+  return 0;
+}
+
+int emptyslice_setup_pmp(void) {
+  slice_printf("%s: hart%d\n", __func__, current_hartid());
+  pmp_set(0, PMP_L, 0, __riscv_xlen);
   slice_pmp_dump();
   return 0;
 }

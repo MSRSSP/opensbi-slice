@@ -22,5 +22,6 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
                  unsigned long mode);
 int slice_delete(int dom_index);
 int slice_stop(int dom_index);
+int slice_hw_reset(int dom_index);
 void slice_pmp_dump_by_index(int dom_index);
 #endif  // __SLICE_MGR_H

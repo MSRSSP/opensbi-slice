@@ -190,6 +190,11 @@ slice_to_sbi(void *slice_mem_start, void *slice_sbi_start,
   __builtin_unreachable();
 }
 
+void nonslice_sbi_init(void) {
+  csr_write(CSR_STVEC, 0);
+  emptyslice_setup_pmp();
+}
+
 int slice_setup_domain(void *dom_ptr) {
   slice_printf("%s: hart%d\n", __func__, current_hartid());
   ulong start_slice_tick = csr_read(CSR_MCYCLE);
@@ -202,8 +207,8 @@ int slice_setup_domain(void *dom_ptr) {
 
   struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
 
-  if (!is_slice(dom) && slice_is_active(dom)) {
-    nonslice_setup_pmp(dom_ptr);
+  if (!is_slice(dom) || !slice_is_active(dom)) {
+    emptyslice_setup_pmp();
     return 0;
   }
   ret = slice_setup_pmp(dom_ptr);
