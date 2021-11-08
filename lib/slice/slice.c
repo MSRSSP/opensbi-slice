@@ -40,6 +40,54 @@ int slice_boot_hart(void) {
   return dom->boot_hartid;
 }
 
+int slice_activate(struct sbi_domain *dom) {
+  enum slice_status oldstate = atomic_cmpxchg(
+      &dom->slice_status, SLICE_STATUS_DELETED, SLICE_STATUS_ACTIVE);
+  if (oldstate != SLICE_STATUS_DELETED) {
+    return SBI_ERR_SLICE_STATUS;
+  }
+  return 0;
+}
+
+int slice_freeze(struct sbi_domain *dom) {
+  int oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_ACTIVE,
+                                SLICE_STATUS_FROZEN);
+  if (oldstate != SLICE_STATUS_ACTIVE) {
+    return SBI_ERR_SLICE_STATUS;
+  }
+  return 0;
+}
+
+int slice_deactivate(struct sbi_domain *dom) {
+  int oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_FROZEN,
+                                SLICE_STATUS_DELETED);
+  if (oldstate != SLICE_STATUS_FROZEN) {
+    return SBI_ERR_SLICE_STATUS;
+  }
+  return 0;
+}
+
+int slice_is_active(struct sbi_domain *dom) {
+  return atomic_read(&dom->slice_status) == SLICE_STATUS_ACTIVE;
+}
+
+int slice_is_existed(struct sbi_domain *dom) {
+  return atomic_read(&dom->slice_status) != SLICE_STATUS_DELETED;
+}
+
+struct sbi_domain *slice_from_index(unsigned int dom_index) {
+  if (dom_index > SBI_DOMAIN_MAX_INDEX) {
+    return NULL;
+  }
+  struct sbi_domain *dom = sbi_index_to_domain(dom_index);
+  return slice_is_existed(dom) ? dom : NULL;
+}
+
+struct sbi_domain *active_slice_from_index(unsigned int dom_index) {
+  struct sbi_domain *dom = slice_from_index(dom_index);
+  return slice_is_active(dom) ? dom : NULL;
+}
+
 #define SBI_IMAGE_SIZE 0x200000
 static void load_next_stage(const void *dom_ptr) {
   unsigned long startTicks = csr_read(CSR_MCYCLE);
@@ -154,7 +202,7 @@ int slice_setup_domain(void *dom_ptr) {
 
   struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
 
-  if (!is_slice(dom)) {
+  if (!is_slice(dom) && slice_is_active(dom)) {
     nonslice_setup_pmp(dom_ptr);
     return 0;
   }

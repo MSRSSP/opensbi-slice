@@ -23,11 +23,18 @@ struct sbi_ipi_data {
 };
 
 #define SLICE_IPI_DATA_OFFSET 0x180000
+#define SLICE_OS_OFFSET 0x200000
+#define SLICE_FDT_OFFSET 0x2000000
+
 struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid) {
   const struct sbi_domain *dom = sbi_hartid_to_domain(hartid);
   // TBD: Use a special memory that is accessible by slice-0 and this slice.
   // This special memory is located in a slice-0 memory and is shared with
   // slice-k by adding whitelist PMP rule when slice-k starts
+  if(dom == NULL){
+    sbi_printf("%s: NULL dom\n", __func__);
+    sbi_hart_hang();
+  }
   unsigned long ptr = (unsigned long)dom->slice_mem_start +
                       SLICE_IPI_DATA_OFFSET +
                       sizeof(struct sbi_ipi_data) * hartid;
@@ -136,16 +143,10 @@ void slice_ipi_register() {
   ipi_slice_event = ret;
 }
 
-void slice_send_ipi_to_domain(unsigned int dom_index,
-                              enum SliceIPIFuncId func_id) {
-  slice_printf("%s: hart%d: dom_index= %d\n", __func__, current_hartid(),
-               dom_index);
-  if (dom_index < 0) {
-    return;
-  }
+static int slice_send_ipi_to_domain(struct sbi_domain *dom,
+                                    enum SliceIPIFuncId func_id) {
   unsigned int dst_hart, src_hart = current_hartid();
   unsigned long hart_mask = 0;
-  struct sbi_domain *dom = sbi_index_to_domain(dom_index);
   sbi_hartmask_for_each_hart(dst_hart, &dom->assigned_harts) {
     slice_ipi_slice_data(src_hart, dst_hart)->func_id = func_id;
     hart_mask |= (1 << dst_hart);
@@ -153,85 +154,98 @@ void slice_send_ipi_to_domain(unsigned int dom_index,
   sbi_ipi_send_many(hart_mask, 0, ipi_slice_event, NULL);
   slice_printf("%s: hart%d: sbi_ipi_send_many hart_mark=%lx\n", __func__,
                current_hartid(), hart_mask);
+  return 0;
 }
 
-#define SLICE_FDT_OFFSET 0x2000000
-
-int slice_create(unsigned long cpu_mask, unsigned long mem_start,
+int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
                  unsigned long mem_size, unsigned long image_from,
-                 unsigned long image_size, unsigned long fdt_from) {
-  struct sbi_hartmask mask;
+                 unsigned long image_size, unsigned long fdt_from, unsigned long mode) {
   struct sbi_domain *dom;
   unsigned cpuid = 0, boot_hartid = -1;
   const struct sbi_platform *plat =
       sbi_platform_ptr(sbi_scratch_thishart_ptr());
-  slice_printf("%s: cpu msk = %lx mem=(%lx %lx) image=(%lx %lx) fdt=%lx",
-               __func__, cpu_mask, mem_start, mem_size, image_from, image_size,
+  slice_printf("%s: mem=(%lx %lx) image=(%lx %lx) fdt=%lx",
+               __func__, mem_start, mem_size, image_from, image_size,
                fdt_from);
-  sbi_hartmask_clear_all(&mask);
-  while (cpu_mask) {
-    if (cpu_mask & 1) {
-      sbi_hartmask_set_hart(cpuid, &mask);
+  sbi_hartmask_for_each_hart(cpuid, &cpu_mask){
       boot_hartid = cpuid;
-    }
-    cpu_mask >>= 1;
-    cpuid++;
+      break;
   }
-  dom = (struct sbi_domain *)slice_allocate_domain(&mask);
+  dom = (struct sbi_domain *)slice_allocate_domain(&cpu_mask);
   dom->boot_hartid = boot_hartid;
-  dom->next_addr = mem_start;
+  dom->slice_mem_start = mem_start;
+  dom->slice_mem_size = mem_size;
+  dom->next_addr = mem_start + SLICE_OS_OFFSET;
   dom->next_arg1 = mem_start + SLICE_FDT_OFFSET;
-  dom->next_mode = PRV_S;
+  dom->next_mode = mode;
   dom->next_boot_src = image_from;
   dom->next_boot_size = image_size;
   dom->slice_dt_src = (void *)fdt_from;
-  dom->slice_mem_size = mem_size;
-  if (sbi_platform_ops(plat)->slice_init_mem_region) {
+  dom->system_reset_allowed = false;
+    if (sbi_platform_ops(plat)->slice_init_mem_region) {
     sbi_platform_ops(plat)->slice_init_mem_region(dom);
   }
-  return sbi_domain_register(dom, dom->possible_harts);
+  int err = sbi_domain_register(dom, dom->possible_harts);
+  if(err){
+    return err;
+  }
+  return slice_activate(dom);
 }
 
 int slice_delete(int dom_index) {
   // Only slice_host_hartid is able to delete a slice config.
   if (current_hartid() != slice_host_hartid()) {
+    // should never reach here.
     return SBI_ERR_SLICE_SBI_PROHIBITED;
   }
   struct sbi_domain *dom = sbi_index_to_domain(dom_index);
-  struct sbi_domain_memregion *region;
-  // struct sbi_hartmask free_harts;
-  // sbi_hartmask_clear_all(&free_harts);
-  int hart_state;
-  unsigned int hart_id;
-  // Check whether we can delete the slice.
-  // Cannot delete a slice if a hart in this slice is still running.
-  sbi_hartmask_for_each_hart(hart_id, &dom->assigned_harts) {
-    hart_state = sbi_hsm_hart_get_state(dom, hart_id);
-    switch (hart_state) {
-      case SBI_HSM_STATE_STOPPED:
-      case SBI_HSM_STATE_STOP_PENDING:
-        break;
-      default:
-        sbi_printf(
-            "%s: Cannot delete slice %d: "
-            "hart %d is not fully stopped.\n",
-            __func__, dom_index, hart_id);
-        return SBI_ERR_SLICE_NOT_DESTROYABLE;
-    }
-  }
-  // Start to delete the slice.
-  for (unsigned int hart_id = 0; hart_id < MAX_HART_NUM; ++hart_id) {
-    if (hartid_to_domain_table[hart_id] == dom) {
-      hartid_to_domain_table[hart_id] = &root;
-      // sbi_hartmask_set_hart(hart_id, &free_harts);
-    }
-  }
-  sbi_domain_for_each_memregion(dom, region) {
-    sbi_memset(region, 0, sizeof(*region));
-  }
-  sbi_memset(dom, 0, sizeof(*dom));
-  // Move free harts to root domain (slice-host);
-  // sbi_hartmask_or(&root.assigned_harts, &root.assigned_harts,
-  //		&free_harts);
+  slice_freeze(dom);
+  sbi_printf(
+      "%s: deleting slice %d in progress. Need a reset to completely free its "
+      "resource.",
+      __func__, dom_index);
   return 0;
+}
+
+int slice_stop(int dom_index) {
+  if (current_hartid() != slice_host_hartid()) {
+    // should never reach here.
+    return SBI_ERR_SLICE_SBI_PROHIBITED;
+  }
+  struct sbi_domain_memregion *region;
+  struct sbi_domain* dom = slice_from_index(dom_index);
+  if(!dom){
+	  return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  }
+  int err = slice_send_ipi_to_domain(dom, SLICE_IPI_SW_STOP);
+  if (err) {
+    return err;
+  }
+  // Now try to free this slice resource if the dom is frozen by slice_delete.
+  if (!slice_deactivate(dom)) {
+    // Start to delete the slice.
+    for (unsigned int hart_id = 0; hart_id < MAX_HART_NUM; ++hart_id) {
+      if (hartid_to_domain_table[hart_id] == dom) {
+        hartid_to_domain_table[hart_id] = &root;
+        // sbi_hartmask_set_hart(hart_id, &free_harts);
+      }
+    }
+    sbi_domain_for_each_memregion(dom, region) {
+      sbi_memset(region, 0, sizeof(*region));
+    }
+    sbi_memset(dom, 0, sizeof(*dom));
+    // Move free harts to root domain (slice-host);
+    // sbi_hartmask_or(&root.assigned_harts, &root.assigned_harts,
+    //		&free_harts);
+  }
+  sbi_printf("%s: slice %d is deleted.", __func__, dom_index);
+  return 0;
+}
+
+void slice_pmp_dump_by_index(int dom_index) {
+  if (dom_index >= 0) {
+    slice_send_ipi_to_domain(slice_from_index(dom_index), SLICE_IPI_PMP_DEBUG);
+  } else {
+    slice_pmp_dump();
+  }
 }

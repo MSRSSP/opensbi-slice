@@ -1,6 +1,7 @@
 #ifndef __SLICE_H__
 #define __SLICE_H__
 
+#include <sbi/riscv_atomic.h>
 /*Domain configurations stored in a protected memory region*/
 struct sbi_domain* allocate_domain();
 struct sbi_hartmask* allocate_hartmask();
@@ -11,6 +12,12 @@ unsigned read_domain_counter();
 enum slice_type {
   SLICE_TYPE_STANDARD_DOMAIN,
   SLICE_TYPE_SLICE,
+};
+
+enum slice_status {
+  SLICE_STATUS_DELETED,
+  SLICE_STATUS_ACTIVE,
+  SLICE_STATUS_FROZEN,
 };
 
 /* Allocate a domain config*/
@@ -45,6 +52,7 @@ void dump_slice_config(const struct sbi_domain* dom_ptr);
 
 struct slice_config {
   enum slice_type slice_type;
+  atomic_t slice_status;
   // source address of device tree for this slice;
   // in a protected memory region; The region could be
   // 1. Only writable by host and this slice;
@@ -69,6 +77,15 @@ bool is_slice(const struct sbi_domain* dom);
 unsigned int slice_host_hartid();
 
 int register_host_hartid(unsigned int hartid);
+
+/* Helper functions for slice status.*/
+int slice_activate(struct sbi_domain* dom);
+int slice_freeze(struct sbi_domain* dom);
+int slice_deactivate(struct sbi_domain* dom);
+int slice_is_active(struct sbi_domain* dom);
+int slice_is_existed(struct sbi_domain* dom);
+struct sbi_domain* slice_from_index(unsigned int index);
+struct sbi_domain* active_slice_from_index(unsigned int index);
 
 #define slice_printf sbi_printf
 //#define slice_printf(x, ...) {}
