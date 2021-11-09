@@ -8,6 +8,7 @@
 #include <sbi/sbi_string.h>
 #include <slice/slice.h>
 #include <slice/slice_err.h>
+#include <slice/slice_mgr.h>
 
 #define CONFIG_SLICE_SW_RESET 0
 #if CONFIG_SLICE_SW_RESET
@@ -18,13 +19,14 @@
 
 // don't allow OpenSBI to play with PMPs
 int sbi_hart_pmp_configure(struct sbi_scratch *pScratch) { return 0; }
+static int _pmp_regions();
 
 static int detect_region_covered_by_pmp(uintptr_t addr, uintptr_t size) {
   unsigned long pmp_base, pmp_end, pmp_end2, input_end;
   unsigned long pmp_log2size, pmp_log2size2;
   unsigned long prot_out;
   int region_overlap = 0, i;
-  unsigned n_pmp = sbi_hart_pmp_count(sbi_scratch_thishart_ptr());
+  int n_pmp = _pmp_regions();
   // Safety check the addr+size
   unsigned long long input_end_tocheck;
   input_end_tocheck = addr + size;
@@ -71,6 +73,9 @@ static int detect_region_covered_by_pmp(uintptr_t addr, uintptr_t size) {
 }
 
 static int _pmp_regions() {
+  if (current_hartid() == 0) {
+    return 16;
+  }
   return sbi_hart_pmp_count(sbi_scratch_thishart_ptr());
 }
 
@@ -196,6 +201,35 @@ void slice_pmp_init() {
   }
 }
 
+static int slice_setup_pmp_for_ipi_data(unsigned pmp_index, void *dom_ptr) {
+  slice_printf("hart %d: %s\n", current_hartid(), __func__);
+  const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
+  unsigned hartid = 0, prev_assigned_hartid = 0;
+  unsigned long addr = 0, size = 0, delta = sizeof(struct slice_ipi_data);
+  sbi_hartmask_for_each_hart(hartid, dom->possible_harts) {
+    if (!addr) {
+      addr = (unsigned long)slice_ipi_data_ptr(hartid);
+      size += delta;
+    } else if ((hartid - prev_assigned_hartid) == 1) {
+      size += delta;
+    } else if (size) {
+      pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L | PMP_W | PMP_R,
+                                        addr, size, false);
+      if (pmp_index < 0) {
+        return pmp_index;
+      }
+      size = 0;
+      addr = 0;
+    }
+    prev_assigned_hartid = hartid;
+  }
+  if (size) {
+    pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L | PMP_W | PMP_R,
+                                      addr, size, false);
+  }
+  return pmp_index;
+}
+
 static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr) {
   slice_printf("hart %d: %s\n", current_hartid(), __func__);
   const struct sbi_ipi_device *ipi_dev = sbi_ipi_get_device();
@@ -224,7 +258,7 @@ static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr) {
     pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L | PMP_W | PMP_R,
                                       addr, size, false);
   }
-  return pmp_index;
+  return slice_setup_pmp_for_ipi_data(pmp_index, dom_ptr);
 }
 
 #define PMP_PERM_FLAG_NUM 4
@@ -326,5 +360,35 @@ int emptyslice_setup_pmp(void) {
   slice_printf("%s: hart%d\n", __func__, current_hartid());
   pmp_set(0, PMP_L, 0, __riscv_xlen);
   slice_pmp_dump();
+  return 0;
+}
+
+atomic_t slice_0_pmp_status = ATOMIC_INITIALIZER(0);
+#define CONFIG_SLICE0_NON_SECURE_MEM_START 0xa8000000
+#define CONFIG_SLICE0_NON_SECURE_MEM_SIZE 0x8000000
+int slice0_setup_pmp(void) {
+  slice_printf("%s: hart%d\n", __func__, current_hartid());
+  // Deny rule.
+  int slice0_pmp_status = atomic_add_return(&slice_0_pmp_status, 1);
+  if (slice0_pmp_status != 1) {
+    return 0;
+  }
+  int pmp_index = 0;
+  pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L, 0x80000000,
+                                    0x20000000, true);
+  if (pmp_index < 0) {
+    return pmp_index;
+  }
+
+  pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L, 0x1000000000,
+                                    0x100000000, true);
+  if (pmp_index < 0) {
+    return pmp_index;
+  }
+
+  pmp_index =
+      slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L | PMP_R | PMP_W | PMP_X,
+                            CONFIG_SLICE0_NON_SECURE_MEM_START,
+                            CONFIG_SLICE0_NON_SECURE_MEM_SIZE, false);
   return 0;
 }

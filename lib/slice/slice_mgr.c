@@ -15,17 +15,10 @@
 #include <slice/slice_pmp.h>
 #include <slice/slice_reset.h>
 
-// TODO: Add a lock to avoid dst hart ignors a pending IPI
-// when multiple src harts tries to send IPI to it;
-// struct SliceIPIData slice_ipi_data[MAX_HART_NUM][MAX_HART_NUM];
 struct sbi_ipi_data {
   unsigned long ipi_type;
   struct SliceIPIData slice_data[MAX_HART_NUM];
 };
-
-#define SLICE_IPI_DATA_OFFSET 0x180000
-#define SLICE_OS_OFFSET 0x200000
-#define SLICE_FDT_OFFSET 0x2000000
 
 struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid) {
   const struct sbi_domain *dom = sbi_hartid_to_domain(hartid);
@@ -36,10 +29,14 @@ struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid) {
     sbi_printf("%s: NULL dom\n", __func__);
     sbi_hart_hang();
   }
+  /*
   unsigned long ptr = (unsigned long)dom->slice_mem_start +
                       SLICE_IPI_DATA_OFFSET +
                       sizeof(struct sbi_ipi_data) * hartid;
   return (struct sbi_ipi_data *)ptr;
+  */
+  struct slice_bus_data *bus = (struct slice_bus_data *)SLICE0_BUS_MEMORY;
+  return (struct sbi_ipi_data *)&bus->slice_buses[hartid];
 }
 
 struct SliceIPIData *slice_ipi_slice_data(u32 src, u32 dst) {

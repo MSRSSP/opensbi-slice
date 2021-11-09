@@ -17,5 +17,6 @@ int slice_pmp_dump();
 int nonslice_setup_pmp(void *dom_ptr);
 void slice_pmp_init();
 int emptyslice_setup_pmp(void);
+int slice0_setup_pmp(void);
 
 #endif
