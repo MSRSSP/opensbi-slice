@@ -12,6 +12,7 @@
 #include <sbi_utils/reset/fdt_reset.h>
 #include <sbi_utils/serial/fdt_serial.h>
 #include <slice/slice.h>
+#include <slice/slice_err.h>
 
 void _print_fdt(const void *fdt, int node, char *prefix) {
   int property, child, fixup_len, plen, len;
@@ -140,6 +141,38 @@ int fdt_reset_device_fixup(void *fdt, const void *dom_ptr) {
   return 0;
 }
 
+int slice_fixup_memory(void *fdt, const struct sbi_domain *dom) {
+  int soc_offset = fdt_path_offset(fdt, "/soc");
+  if (soc_offset < 0) {
+    sbi_printf("%s: soc_offset<0\n", __func__);
+    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  }
+  int len, err;
+  const char *device_type;
+  fdt32_t reg[4];
+  fdt32_t *val;
+  val = reg;
+  *val++ = cpu_to_fdt32((u64)dom->slice_mem_start >> 32);
+  *val++ = cpu_to_fdt32(dom->slice_mem_start);
+  *val++ = cpu_to_fdt32((u64)dom->slice_mem_size >> 32);
+  *val++ = cpu_to_fdt32(dom->slice_mem_size);
+  fdt_for_each_subnode(soc_offset, fdt, soc_offset) {
+    device_type =
+        (const char *)fdt_getprop(fdt, soc_offset, "device_type", &len);
+    if (!device_type || !len) {
+      continue;
+    }
+    if (strcmp(device_type, "memory") == 0) {
+      err = fdt_setprop(fdt, soc_offset, "reg", reg, 4 * sizeof(fdt32_t));
+      slice_printf("%s: Fix up memory\n", __func__);
+      if (err) {
+        return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+      }
+    }
+  }
+  return 0;
+}
+
 int slice_create_domain_fdt(const void *dom_ptr) {
   const struct sbi_domain *domain = (const struct sbi_domain *)dom_ptr;
   void *fdt_src, *fdt;
@@ -160,6 +193,7 @@ int slice_create_domain_fdt(const void *dom_ptr) {
   }
   copy_fdt(fdt_src, fdt);
   fdt_cpu_fixup(fdt, dom_ptr);
+  slice_fixup_memory(fdt, domain);
   // Cannot remove cpu0;
   // If exposing only cpu0, cpu3, cpu4, kernel would panic
   fdt_reset_device_fixup(fdt, dom_ptr);
@@ -168,5 +202,6 @@ int slice_create_domain_fdt(const void *dom_ptr) {
   }
   fdt_fixups(fdt, dom_ptr);
   fdt_domain_fixup(fdt, dom_ptr);
+  slice_print_fdt(fdt);
   return 0;
 }

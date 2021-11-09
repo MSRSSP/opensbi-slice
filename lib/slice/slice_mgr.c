@@ -163,6 +163,7 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
                  unsigned long image_size, unsigned long fdt_from,
                  unsigned long mode) {
   struct sbi_domain *dom;
+  int err = 0;
   unsigned cpuid = 0, boot_hartid = -1;
   const struct sbi_platform *plat =
       sbi_platform_ptr(sbi_scratch_thishart_ptr());
@@ -186,16 +187,27 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
   if (sbi_platform_ops(plat)->slice_init_mem_region) {
     sbi_platform_ops(plat)->slice_init_mem_region(dom);
   }
-  int err = sbi_domain_register(dom, dom->possible_harts);
+  err = sanitize_slice(dom);
+  if (err) {
+    sbi_printf(
+        "%s: Cannot create an slice with shared CPU/Mem"
+        "with existing slices. Please revise the creation request.",
+        __func__);
+    return err;
+  }
+  err = sbi_domain_register(dom, dom->possible_harts);
   if (err) {
     return err;
   }
-  if (sbi_platform_ops(plat)->slice_register_hart &&
-      sbi_platform_ops(plat)->slice_register_source) {
-    sbi_platform_ops(plat)->slice_register_hart(
-        "", cpu_mask.bits[0], boot_hartid, mode, dom->slice_mem_start, 0);
-    sbi_platform_ops(plat)->slice_register_source(boot_hartid, image_from,
-                                                  image_size, fdt_from);
+  if (current_hartid() == slice_host_hartid()) {
+    if (sbi_platform_ops(plat)->slice_register_hart &&
+        sbi_platform_ops(plat)->slice_register_source) {
+      sbi_platform_ops(plat)->slice_register_hart(
+          "", cpu_mask.bits[0], boot_hartid, mode, dom->slice_mem_start,
+          dom->slice_mem_size);
+      sbi_platform_ops(plat)->slice_register_source(boot_hartid, image_from,
+                                                    image_size, fdt_from);
+    }
   }
   return slice_activate(dom);
 }
@@ -226,21 +238,9 @@ int slice_delete(int dom_index) {
   return 0;
 }
 
-int slice_stop(int dom_index) {
-  if (current_hartid() != slice_host_hartid()) {
-    // should never reach here.
-    return SBI_ERR_SLICE_SBI_PROHIBITED;
-  }
+static void slice_remove_if_frozen(struct sbi_domain *dom) {
   struct sbi_domain_memregion *region;
-  struct sbi_domain *dom = slice_from_index(dom_index);
-  if (!dom) {
-    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
-  }
-  int err = slice_send_ipi_to_domain(dom, SLICE_IPI_SW_STOP);
-  if (err) {
-    return err;
-  }
-  // Now try to free this slice resource if the dom is frozen by slice_delete.
+  unsigned index = dom->index;
   if (!slice_deactivate(dom)) {
     // Start to delete the slice.
     for (unsigned int hart_id = 0; hart_id < MAX_HART_NUM; ++hart_id) {
@@ -253,11 +253,27 @@ int slice_stop(int dom_index) {
       sbi_memset(region, 0, sizeof(*region));
     }
     sbi_memset(dom, 0, sizeof(*dom));
-    sbi_printf("%s: slice %d is deleted.", __func__, dom_index);
+    sbi_printf("%s: slice %d is deleted.", __func__, index);
     // Move free harts to root domain (slice-host);
     // sbi_hartmask_or(&root.assigned_harts, &root.assigned_harts,
     //		&free_harts);
   }
+}
+int slice_stop(int dom_index) {
+  if (current_hartid() != slice_host_hartid()) {
+    // should never reach here.
+    return SBI_ERR_SLICE_SBI_PROHIBITED;
+  }
+  struct sbi_domain *dom = slice_from_index(dom_index);
+  if (!dom) {
+    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  }
+  int err = slice_send_ipi_to_domain(dom, SLICE_IPI_SW_STOP);
+  if (err) {
+    return err;
+  }
+  // Now try to free this slice resource if the dom is frozen by slice_delete.
+  slice_remove_if_frozen(dom);
   return 0;
 }
 
@@ -267,6 +283,7 @@ int slice_hw_reset(int dom_index) {
     return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
   d_reset_by_hartmask(*dom->possible_harts->bits);
+  slice_remove_if_frozen(dom);
   return 0;
 }
 
@@ -275,5 +292,15 @@ void slice_pmp_dump_by_index(int dom_index) {
     slice_send_ipi_to_domain(slice_from_index(dom_index), SLICE_IPI_PMP_DEBUG);
   } else {
     slice_pmp_dump();
+  }
+}
+
+void dump_slices_config(void) {
+  struct sbi_domain *dom;
+  for (size_t i = 0; i < SBI_DOMAIN_MAX_INDEX; ++i) {
+    if ((dom = slice_from_index(i))) {
+      dump_slice_config(dom);
+      sbi_printf("\n");
+    }
   }
 }

@@ -49,6 +49,9 @@ void fdt_cpu_fixup(void *fdt, const void *dom_ptr)
 			fdt_setprop_string(fdt, cpu_offset, "status",
 					   "disabled");
 			}
+    else{
+        fdt_setprop_string(fdt, cpu_offset, "status", "okay");
+    }
 	}
 }
 

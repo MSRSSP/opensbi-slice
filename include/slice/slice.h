@@ -2,6 +2,7 @@
 #define __SLICE_H__
 
 #include <sbi/riscv_atomic.h>
+
 /*Domain configurations stored in a protected memory region*/
 struct sbi_domain* allocate_domain();
 struct sbi_hartmask* allocate_hartmask();
@@ -88,6 +89,8 @@ struct sbi_domain* slice_from_index(unsigned int index);
 struct sbi_domain* active_slice_from_index(unsigned int index);
 void nonslice_sbi_init(void);
 
+// A security-critical function to check overlaps among slices.
+int sanitize_slice(struct sbi_domain* new_dom);
 #define slice_printf sbi_printf
 //#define slice_printf(x, ...) {}
 #endif  // __D_H__

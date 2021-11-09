@@ -211,17 +211,16 @@ int slice_setup_domain(void *dom_ptr) {
     emptyslice_setup_pmp();
     return 0;
   }
+  if (dom->boot_hartid == current_hartid()) {
+    // cleared by slice bootloader before sbi_init
+    // zero_slice_memory(dom_ptr);
+    load_next_stage(dom_ptr);
+    ret = slice_create_domain_fdt(dom_ptr);
+    if (ret) {
+      return ret;
+    }
+  }
   ret = slice_setup_pmp(dom_ptr);
-  if (ret) {
-    return ret;
-  }
-  if (dom->boot_hartid != current_hartid()) {
-    return ret;
-  }
-  // cleared by slice bootloader before sbi_init
-  // zero_slice_memory(dom_ptr);
-  load_next_stage(dom_ptr);
-  ret = slice_create_domain_fdt(dom_ptr);
   if (ret) {
     return ret;
   }
@@ -250,10 +249,71 @@ void *slice_allocate_domain(struct sbi_hartmask *input_mask) {
   return dom;
 }
 
+static bool slice_mem_overlap(struct sbi_domain *dom1,
+                              struct sbi_domain *dom2) {
+  if (dom1->slice_mem_start > dom2->slice_mem_start) {
+    return slice_mem_overlap(dom2, dom1);
+  }
+  return (dom1->slice_mem_start + dom1->slice_mem_size) > dom2->slice_mem_start;
+}
+
+static bool slice_cpu_overlap(struct sbi_domain *dom1,
+                              struct sbi_domain *dom2) {
+  unsigned hartid;
+  sbi_hartmask_for_each_hart(hartid, dom1->possible_harts) {
+    if (sbi_hartmask_test_hart(hartid, dom2->possible_harts)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int sanitize_slice(struct sbi_domain *new_dom) {
+  struct sbi_domain *dom;
+  for (size_t i = 0; i < SBI_DOMAIN_MAX_INDEX; ++i) {
+    if ((dom = slice_from_index(i))) {
+      if (slice_mem_overlap(new_dom, dom)) {
+        return SBI_ERR_SLICE_REGION_OVERLAPS;
+      }
+      if (slice_cpu_overlap(new_dom, dom)) {
+        return SBI_ERR_SLICE_REGION_OVERLAPS;
+      }
+    }
+  }
+  return 0;
+}
+
 void dump_slice_config(const struct sbi_domain *dom) {
-  sbi_printf("slicetype = %d\n", dom->slice_type);
-  sbi_printf("next_boot_src = %lx\n", dom->next_boot_src);
-  sbi_printf("next_boot_size = %lx\n", (unsigned long)dom->next_boot_size);
-  sbi_printf("slice_dt_src = %lx\n", (unsigned long)dom->slice_dt_src);
-  sbi_printf("slice_mem_size = %lx\n", dom->slice_mem_size);
+  const char *slice_status_str[3] = {"DELETED", "ACTIVE", "FROZEN"};
+  atomic_t status = dom->slice_status;
+  int status_code = atomic_read(&status);
+  sbi_printf("slice %d: slice_type        = %d\n", dom->index, dom->slice_type);
+  sbi_printf("slice %d: slice_status      = %s\n", dom->index,
+             slice_status_str[status_code]);
+  sbi_printf("slice %d: Boot HART         = %d\n", dom->index,
+             dom->boot_hartid);
+  unsigned k = 0, i;
+  sbi_printf("slice %d: HARTs             = ", dom->index);
+  sbi_hartmask_for_each_hart(i, dom->possible_harts)
+      sbi_printf("%s%d%s", (k++) ? "," : "", i,
+                 sbi_domain_is_assigned_hart(dom, i) ? "*" : "");
+  sbi_printf("\n");
+  sbi_printf("slice %d: slice_mem_start   = 0x%lx\n", dom->index,
+             dom->slice_mem_start);
+  sbi_printf("slice %d: slice_mem_size    = 0x%lx GiB\n", dom->index,
+             (u64)dom->slice_mem_size >> 20);
+  sbi_printf("slice %d: slice_fw_start    = 0x%lx\n", dom->index,
+             dom->slice_sbi_start);
+  sbi_printf("slice %d: slice_fw_size     = 0x%lx\n", dom->index,
+             dom->slice_sbi_size);
+  sbi_printf("slice %d: guest_kernel_src  = 0x%lx (loaded by slice-0)\n",
+             dom->index, dom->next_boot_src);
+  sbi_printf("slice %d: guest_kernel_size = 0x%lx \n", dom->index,
+             (unsigned long)dom->next_boot_size);
+  sbi_printf("slice %d: guest_kernel_start= 0x%lx (copy from guest_fdt_src)\n",
+             dom->index, dom->next_arg1);
+  sbi_printf("slice %d: guest_fdt_src     = 0x%lx (loaded by slice-0)\n",
+             dom->index, (unsigned long)dom->slice_dt_src);
+  sbi_printf("slice %d: slice_fdt_start   = 0x%lx (copy from guest_fdt_src)\n",
+             dom->index, dom->next_arg1);
 }
