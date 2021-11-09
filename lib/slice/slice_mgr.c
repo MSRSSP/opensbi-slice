@@ -162,37 +162,48 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
                  unsigned long mem_size, unsigned long image_from,
                  unsigned long image_size, unsigned long fdt_from,
                  unsigned long mode) {
+  struct slice_options options = {cpu_mask,   mem_start, mem_size, image_from,
+                                  image_size, fdt_from,  mode,     ""};
+  sbi_printf("%s:%lx\n", __func__, options.mem_start);
+  return slice_create_full(&options);
+}
+
+int slice_create_full(struct slice_options *slice_options) {
   struct sbi_domain *dom;
   int err = 0;
   unsigned cpuid = 0, boot_hartid = -1;
   const struct sbi_platform *plat =
       sbi_platform_ptr(sbi_scratch_thishart_ptr());
-  slice_printf("%s: mem=(%lx %lx) image=(%lx %lx) fdt=%lx", __func__, mem_start,
-               mem_size, image_from, image_size, fdt_from);
-  sbi_hartmask_for_each_hart(cpuid, &cpu_mask) {
+  sbi_hartmask_for_each_hart(cpuid, &slice_options->hartmask) {
     boot_hartid = cpuid;
     break;
   }
-  dom = (struct sbi_domain *)slice_allocate_domain(&cpu_mask);
+  dom = (struct sbi_domain *)slice_allocate_domain(&slice_options->hartmask);
+  if (sbi_strlen(slice_options->stdout) > 0) {
+    sbi_memset(&(dom->stdout_path[0]), 0, array_size(dom->stdout_path));
+    sbi_memcpy(&(dom->stdout_path[0]), slice_options->stdout,
+               array_size(slice_options->stdout) - 1);
+  }
   dom->boot_hartid = boot_hartid;
-  dom->slice_mem_start = mem_start;
-  dom->slice_mem_size = mem_size;
-  dom->next_addr = mem_start + SLICE_OS_OFFSET;
-  dom->next_arg1 = mem_start + SLICE_FDT_OFFSET;
-  dom->next_mode = mode;
-  dom->next_boot_src = image_from;
-  dom->next_boot_size = image_size;
-  dom->slice_dt_src = (void *)fdt_from;
+  sbi_printf("%s:%lx\n", __func__, slice_options->mem_start);
+
+  dom->slice_mem_start = slice_options->mem_start;
+  dom->slice_mem_size = slice_options->mem_size;
+  dom->next_addr = slice_options->mem_start + SLICE_OS_OFFSET;
+  dom->next_arg1 = slice_options->mem_start + SLICE_FDT_OFFSET;
+  dom->next_mode = slice_options->guest_mode;
+  sbi_printf("%s: slice_options->stdout=%s\n", __func__, slice_options->stdout);
+  dom->next_boot_src = slice_options->image_from;
+  dom->next_boot_size = slice_options->image_size;
+  dom->slice_dt_src = (void *)slice_options->fdt_from;
   dom->system_reset_allowed = false;
   if (sbi_platform_ops(plat)->slice_init_mem_region) {
     sbi_platform_ops(plat)->slice_init_mem_region(dom);
   }
   err = sanitize_slice(dom);
   if (err) {
-    sbi_printf(
-        "%s: Cannot create an slice with shared CPU/Mem"
-        "with existing slices. Please revise the creation request.",
-        __func__);
+    sbi_printf("%s: Cannot create an slice. err = %d\n", __func__, err);
+    dump_slice_config(dom);
     return err;
   }
   err = sbi_domain_register(dom, dom->possible_harts);
@@ -203,10 +214,11 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
     if (sbi_platform_ops(plat)->slice_register_hart &&
         sbi_platform_ops(plat)->slice_register_source) {
       sbi_platform_ops(plat)->slice_register_hart(
-          "", cpu_mask.bits[0], boot_hartid, mode, dom->slice_mem_start,
-          dom->slice_mem_size);
-      sbi_platform_ops(plat)->slice_register_source(boot_hartid, image_from,
-                                                    image_size, fdt_from);
+          "", slice_options->hartmask.bits[0], boot_hartid,
+          slice_options->guest_mode, dom->slice_mem_start, dom->slice_mem_size);
+      sbi_platform_ops(plat)->slice_register_source(
+          boot_hartid, slice_options->image_from, slice_options->image_size,
+          slice_options->fdt_from, dom->stdout_path);
     }
   }
   return slice_activate(dom);

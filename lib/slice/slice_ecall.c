@@ -73,9 +73,13 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 	case SBI_SLICE_RESET:
 		retval = slice_sbi_reset(out_val, regs->a0);
 		break;
-	case SBI_SLICE_CREATE:
-		retval = slice_create(regs->a0, regs->a1, regs->a2, 0x84000000, 0x20000000, root.next_arg1);
+	case SBI_SLICE_CREATE:{
+		struct sbi_hartmask mask;
+		sbi_hartmask_clear_all(&mask);
+		mask.bits[0] = regs->a0;
+		retval = slice_create(mask, regs->a1, regs->a2, 0x84000000, 0x20000000, root.next_arg1, PRV_S);
 		break;
+	}
 	case SBI_SLICE_INFO:
 		retval = slice_sbi_info(out_val, regs->a0);
 		break;

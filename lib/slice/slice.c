@@ -273,18 +273,26 @@ int sanitize_slice(struct sbi_domain *new_dom) {
   for (size_t i = 0; i < SBI_DOMAIN_MAX_INDEX; ++i) {
     if ((dom = slice_from_index(i))) {
       if (slice_mem_overlap(new_dom, dom)) {
+        dump_slice_config(dom);
         return SBI_ERR_SLICE_REGION_OVERLAPS;
       }
       if (slice_cpu_overlap(new_dom, dom)) {
+        dump_slice_config(dom);
         return SBI_ERR_SLICE_REGION_OVERLAPS;
       }
     }
+  }
+  if(new_dom->boot_hartid <= 0 || new_dom->boot_hartid > last_hartid_having_scratch){
+    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  }
+  if(new_dom->slice_mem_size == 0){
+    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
   return 0;
 }
 
 void dump_slice_config(const struct sbi_domain *dom) {
-  const char *slice_status_str[3] = {"DELETED", "ACTIVE", "FROZEN"};
+  const char *slice_status_str[3] = {"INACTIVE/DELETED", "ACTIVE", "FROZEN"};
   atomic_t status = dom->slice_status;
   int status_code = atomic_read(&status);
   sbi_printf("slice %d: slice_type        = %d\n", dom->index, dom->slice_type);
@@ -316,4 +324,6 @@ void dump_slice_config(const struct sbi_domain *dom) {
              dom->index, (unsigned long)dom->slice_dt_src);
   sbi_printf("slice %d: slice_fdt_start   = 0x%lx (copy from guest_fdt_src)\n",
              dom->index, dom->next_arg1);
+  sbi_printf("slice %d: slice_uart        = %s\n",
+             dom->index, dom->stdout_path);
 }

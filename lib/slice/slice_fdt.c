@@ -102,6 +102,72 @@ bool slice_is_accessible(unsigned long addr, unsigned long size,
   return false;
 }
 
+extern struct fdt_serial fdt_serial_uart8250;
+extern struct fdt_serial fdt_serial_sifive;
+extern struct fdt_serial fdt_serial_htif;
+extern struct fdt_serial fdt_serial_shakti;
+extern struct fdt_serial fdt_serial_gaisler;
+
+static struct fdt_serial *serial_drivers[] = {
+    &fdt_serial_uart8250, &fdt_serial_sifive, &fdt_serial_htif,
+    &fdt_serial_shakti, &fdt_serial_gaisler};
+
+static void slice_serial_fixup(void *fdt, const struct sbi_domain *dom) {
+  /* Fix up UART*/
+  const struct fdt_match *match;
+  struct fdt_serial *drv;
+  int pos, selected_noff = -1, noff = -1;
+  if (sbi_strlen(dom->stdout_path)) {
+    const char *sep, *start = dom->stdout_path;
+    /* The device path may be followed by ':' */
+    sep = strchr(start, ':');
+    if (sep)
+      selected_noff = fdt_path_offset_namelen(fdt, start, sep - start);
+    else
+      selected_noff = fdt_path_offset(fdt, start);
+  } else {
+    // Do not update serial entries in this device tree if no domain.
+    return;
+  }
+  sbi_printf("%s: selected_noff=%d\n", __func__, selected_noff);
+  for (pos = 0; pos < array_size(serial_drivers); pos++) {
+    drv = serial_drivers[pos];
+    noff = 0;
+    while (true) {
+      noff = fdt_find_match(fdt, noff, drv->match_table, &match);
+      if (noff < 0) break;
+      sbi_printf("%s: uart node=%d\n", __func__, noff);
+      int diff = selected_noff - noff;
+      if (diff < 10 && diff > -10) {
+        fdt_setprop_string(fdt, noff, "status", "okay");
+      } else {
+        fdt_setprop_string(fdt, noff, "status", "disabled");
+      }
+    }
+  }
+}
+
+/* Fix fdt's uart according to dom_ptr.
+
+1. Update stdout-path to domain specific one
+2. Remove uarts outside of the domain.
+If not invalidating uarts outside of the domain,
+kernel would panic due to serial_probe (e.g., sifive_serial_probe).
+*/
+void fdt_serial_fixup(void *fdt, const void *dom_ptr) {
+  /* Fix up UART*/
+  const struct sbi_domain *dom = dom_ptr;
+  int coff;
+  coff = fdt_path_offset(fdt, "/chosen");
+  if (coff < 0) return;
+  if (sbi_strlen(dom->stdout_path)) {
+    // Set the chosen stdout path to the dom's stdout path.
+    fdt_setprop_string(fdt, coff, "stdout-path", dom->stdout_path);
+    sbi_printf("hart%d: Fix UART: %s\n", current_hartid(), dom->stdout_path);
+    slice_serial_fixup(fdt, dom);
+  }
+}
+
 static const struct fdt_match fixup_device_match_table[] = {
     {.compatible = "syscon-reboot"},
     {},
@@ -197,9 +263,8 @@ int slice_create_domain_fdt(const void *dom_ptr) {
   // Cannot remove cpu0;
   // If exposing only cpu0, cpu3, cpu4, kernel would panic
   fdt_reset_device_fixup(fdt, dom_ptr);
-  if (domain->slice_dt_src == NULL) {
-    fdt_serial_fixup(fdt, dom_ptr);
-  }
+  fdt_serial_fixup(fdt, dom_ptr);
+  // slice_serial_fixup(fdt, domain);
   fdt_fixups(fdt, dom_ptr);
   fdt_domain_fixup(fdt, dom_ptr);
   slice_print_fdt(fdt);

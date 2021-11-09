@@ -51,6 +51,7 @@ slice_to_sbi(void* slice_mem_start, void* slice_sbi_start,
 
 void dump_slice_config(const struct sbi_domain* dom_ptr);
 
+#define SLICE_UART_PATH_LEN 32
 struct slice_config {
   enum slice_type slice_type;
   atomic_t slice_status;
@@ -66,7 +67,7 @@ struct slice_config {
   // size of next boot image;
   unsigned next_boot_size;
   /** default stdio **/
-  char stdout_path[64];
+  char stdout_path[SLICE_UART_PATH_LEN];
   unsigned long slice_mem_start;
   unsigned long slice_mem_size;
   unsigned long slice_sbi_start;
