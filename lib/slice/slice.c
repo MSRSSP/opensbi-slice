@@ -308,7 +308,7 @@ void dump_slice_config(const struct sbi_domain *dom) {
   sbi_printf("\n");
   sbi_printf("slice %d: slice_mem_start   = 0x%lx\n", dom->index,
              dom->slice_mem_start);
-  sbi_printf("slice %d: slice_mem_size    = 0x%lx GiB\n", dom->index,
+  sbi_printf("slice %d: slice_mem_size    = %ld MiB\n", dom->index,
              (u64)dom->slice_mem_size >> 20);
   sbi_printf("slice %d: slice_fw_start    = 0x%lx\n", dom->index,
              dom->slice_sbi_start);
@@ -318,7 +318,7 @@ void dump_slice_config(const struct sbi_domain *dom) {
              dom->index, dom->next_boot_src);
   sbi_printf("slice %d: guest_kernel_size = 0x%lx \n", dom->index,
              (unsigned long)dom->next_boot_size);
-  sbi_printf("slice %d: guest_kernel_start= 0x%lx (copy from guest_fdt_src)\n",
+  sbi_printf("slice %d: guest_kernel_start= 0x%lx (copy from guest_kernel_src)\n",
              dom->index, dom->next_arg1);
   sbi_printf("slice %d: guest_fdt_src     = 0x%lx (loaded by slice-0)\n",
              dom->index, (unsigned long)dom->slice_dt_src);

@@ -10,8 +10,7 @@
 #include <slice/slice_err.h>
 #include <slice/slice_mgr.h>
 
-#define CONFIG_SLICE_SW_RESET 0
-#if CONFIG_SLICE_SW_RESET
+#if defined(CONFIG_SLICE_SW_RESET) && CONFIG_SLICE_SW_RESET
 #define SLICE_PMP_L 0x0
 #else
 #define SLICE_PMP_L PMP_L
