@@ -357,7 +357,7 @@ int nonslice_setup_pmp(void *dom_ptr) {
 
 int emptyslice_setup_pmp(void) {
   slice_printf("%s: hart%d\n", __func__, current_hartid());
-  pmp_set(0, PMP_L, 0, __riscv_xlen);
+  pmp_set(0, SLICE_PMP_L, 0, __riscv_xlen);
   slice_pmp_dump();
   return 0;
 }

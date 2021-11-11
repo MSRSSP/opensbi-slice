@@ -227,10 +227,6 @@ static int sanitize_domain(const struct sbi_platform *plat,
 	}
 	sbi_domain_for_each_memregion(dom, reg) {
 		if (!is_region_valid(reg)) {
-			sbi_printf("%s: %s has invalid region base=0x%lx "
-				   "order=%lu flags=0x%lx\n", __func__,
-				   dom->name, reg->base, reg->order,
-				   reg->flags);
 			//return SBI_EINVAL;
 		}
 	}
