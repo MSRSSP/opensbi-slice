@@ -130,6 +130,9 @@ static void slice_serial_fixup(void *fdt, const struct sbi_domain *dom) {
     return;
   }
   sbi_printf("%s: selected_noff=%d\n", __func__, selected_noff);
+  if (selected_noff < 0) {
+    return;
+  }
   for (pos = 0; pos < array_size(serial_drivers); pos++) {
     drv = serial_drivers[pos];
     noff = 0;

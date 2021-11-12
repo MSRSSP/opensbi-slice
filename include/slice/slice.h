@@ -46,7 +46,7 @@ int slice_setup_domain(void* dom_ptr);
 
 // Jump to slice's sbi stage.
 void __attribute__((noreturn))
-slice_to_sbi(void* slice_mem_start, void* slice_sbi_start,
+slice_to_sbi(unsigned boothart_id, void* slice_mem_start, void* slice_sbi_start,
              unsigned long slice_sbi_size);
 
 void dump_slice_config(const struct sbi_domain* dom_ptr);
@@ -54,7 +54,11 @@ void dump_slice_config(const struct sbi_domain* dom_ptr);
 #define SLICE_UART_PATH_LEN 32
 struct slice_config {
   enum slice_type slice_type;
+#ifndef CONFIG_QEMU
+  long slice_status;
+#else
   atomic_t slice_status;
+#endif
   // source address of device tree for this slice;
   // in a protected memory region; The region could be
   // 1. Only writable by host and this slice;

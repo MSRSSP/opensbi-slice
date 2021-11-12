@@ -161,6 +161,7 @@ int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
                  unsigned long mode) {
   struct slice_options options = {cpu_mask,   mem_start, mem_size, image_from,
                                   image_size, fdt_from,  mode,     ""};
+  sbi_memset(options.stdout, 0, SLICE_UART_PATH_LEN);
   sbi_printf("%s:%lx\n", __func__, options.mem_start);
   return slice_create_full(&options);
 }
@@ -177,9 +178,9 @@ int slice_create_full(struct slice_options *slice_options) {
   }
   dom = (struct sbi_domain *)slice_allocate_domain(&slice_options->hartmask);
   if (sbi_strlen(slice_options->stdout) > 0) {
-    sbi_memset(&(dom->stdout_path[0]), 0, array_size(dom->stdout_path));
-    sbi_memcpy(&(dom->stdout_path[0]), slice_options->stdout,
-               array_size(slice_options->stdout) - 1);
+    sbi_memset(dom->stdout_path, 0, array_size(dom->stdout_path));
+    sbi_memcpy(dom->stdout_path, slice_options->stdout,
+               sbi_strlen(slice_options->stdout));
   }
   dom->boot_hartid = boot_hartid;
   sbi_printf("%s:%lx\n", __func__, slice_options->mem_start);

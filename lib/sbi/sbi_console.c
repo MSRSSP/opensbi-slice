@@ -8,13 +8,14 @@
  */
 
 #include <sbi/riscv_locks.h>
+#include <sbi/riscv_barrier.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_scratch.h>
 
 static const struct sbi_console_device *console_dev = NULL;
-static spinlock_t console_out_lock	       = SPIN_LOCK_INITIALIZER;
-
+//static spinlock_t console_out_lock	       = SPIN_LOCK_INITIALIZER;
+static int console_out_lock = 0;
 bool sbi_isprintable(char c)
 {
 	if (((31 < c) && (c < 127)) || (c == '\f') || (c == '\r') ||
@@ -42,12 +43,15 @@ void sbi_putc(char ch)
 
 void sbi_puts(const char *str)
 {
-	spin_lock(&console_out_lock);
+	//spin_lock(&console_out_lock);
+	while(__smp_load_acquire(&console_out_lock))
+	__smp_store_release(&console_out_lock, 1);
 	while (*str) {
 		sbi_putc(*str);
 		str++;
 	}
-	spin_unlock(&console_out_lock);
+	__smp_store_release(&console_out_lock, 0);
+	//spin_unlock(&console_out_lock);
 }
 
 void sbi_gets(char *s, int maxwidth, char endchar)
@@ -371,11 +375,14 @@ int sbi_printf(const char *format, ...)
 	va_list args;
 	int retval;
 
-	spin_lock(&console_out_lock);
+	while(__smp_load_acquire(&console_out_lock))
+	__smp_store_release(&console_out_lock, 1);
+	//spin_lock(&console_out_lock);
 	va_start(args, format);
 	retval = print(NULL, NULL, format, args);
 	va_end(args);
-	spin_unlock(&console_out_lock);
+	__smp_store_release(&console_out_lock, 0);
+	//spin_unlock(&console_out_lock);
 
 	return retval;
 }

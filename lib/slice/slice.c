@@ -15,6 +15,20 @@
 #include <slice/slice_mgr.h>
 #include <slice/slice_pmp.h>
 
+#ifndef CONFIG_QEMU
+// In PolarFire, only selected memory regions support atomic operations.
+#define atomic_cmpxchg exchange
+#define atomic_read read
+
+long read(long *data) { return *data; }
+
+long exchange(long *data, long current_val, long target_val) {
+  long old_val = *data;
+  *data = (old_val == current_val) ? target_val : old_val;
+  return old_val;
+}
+#endif
+
 bool is_slice(const struct sbi_domain *dom) {
   return dom->slice_type == SLICE_TYPE_SLICE;
 }
@@ -122,13 +136,17 @@ dom->slice_mem_start - dom->next_addr + dom->slice_mem_size);
 }
 */
 
+int jump_sbi_status = 0;
+
 static void __attribute__((noreturn))
-slice_jump_sbi(unsigned long next_addr, unsigned long next_mode) {
+slice_jump_sbi(unsigned boothart_id, unsigned long next_addr,
+               unsigned long next_mode) {
 #if __riscv_xlen == 32
   unsigned long val, valH;
 #else
   unsigned long val;
 #endif
+  jump_sbi_status = 1;
   sbi_printf("%s(): next_addr=%#lx next_mode=%#lx\n", __func__, next_addr,
              next_mode);
 
@@ -172,21 +190,20 @@ slice_jump_sbi(unsigned long next_addr, unsigned long next_mode) {
       csr_write(CSR_UIE, 0);
     }
   }
-  register unsigned long a0 asm("a0") =
-      (unsigned long)sbi_scratch_thishart_ptr();
+  register unsigned long a0 asm("a0") = boothart_id;
   __asm__ __volatile__("mret" : : "r"(a0));
   __builtin_unreachable();
 }
 
 void __attribute__((noreturn))
-slice_to_sbi(void *slice_mem_start, void *slice_sbi_start,
+slice_to_sbi(unsigned boothart_id, void *slice_mem_start, void *slice_sbi_start,
              unsigned long slice_sbi_size) {
   slice_printf("%s: hart%d: next sbi is %p (copy from %p)\n", __func__,
                current_hartid(), slice_mem_start, slice_sbi_start);
   if (slice_sbi_size > 0) {
     sbi_memcpy(slice_mem_start, slice_sbi_start, slice_sbi_size);
   }
-  slice_jump_sbi((unsigned long)slice_mem_start, PRV_M);
+  slice_jump_sbi(boothart_id, (unsigned long)slice_mem_start, PRV_M);
   __builtin_unreachable();
 }
 
@@ -282,10 +299,11 @@ int sanitize_slice(struct sbi_domain *new_dom) {
       }
     }
   }
-  if(new_dom->boot_hartid <= 0 || new_dom->boot_hartid > last_hartid_having_scratch){
+  if (new_dom->boot_hartid <= 0 ||
+      new_dom->boot_hartid > last_hartid_having_scratch) {
     return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
-  if(new_dom->slice_mem_size == 0){
+  if (new_dom->slice_mem_size == 0) {
     return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
   return 0;
@@ -293,8 +311,8 @@ int sanitize_slice(struct sbi_domain *new_dom) {
 
 void dump_slice_config(const struct sbi_domain *dom) {
   const char *slice_status_str[3] = {"INACTIVE/DELETED", "ACTIVE", "FROZEN"};
-  atomic_t status = dom->slice_status;
-  int status_code = atomic_read(&status);
+  struct sbi_domain *d = (struct sbi_domain *)dom;
+  int status_code = atomic_read(&d->slice_status);
   sbi_printf("slice %d: slice_type        = %d\n", dom->index, dom->slice_type);
   sbi_printf("slice %d: slice_status      = %s\n", dom->index,
              slice_status_str[status_code]);
@@ -318,12 +336,13 @@ void dump_slice_config(const struct sbi_domain *dom) {
              dom->index, dom->next_boot_src);
   sbi_printf("slice %d: guest_kernel_size = 0x%lx \n", dom->index,
              (unsigned long)dom->next_boot_size);
-  sbi_printf("slice %d: guest_kernel_start= 0x%lx (copy from guest_kernel_src)\n",
-             dom->index, dom->next_arg1);
+  sbi_printf(
+      "slice %d: guest_kernel_start= 0x%lx (copy from guest_kernel_src)\n",
+      dom->index, dom->next_arg1);
   sbi_printf("slice %d: guest_fdt_src     = 0x%lx (loaded by slice-0)\n",
              dom->index, (unsigned long)dom->slice_dt_src);
   sbi_printf("slice %d: slice_fdt_start   = 0x%lx (copy from guest_fdt_src)\n",
              dom->index, dom->next_arg1);
-  sbi_printf("slice %d: slice_uart        = %s\n",
-             dom->index, dom->stdout_path);
+  sbi_printf("slice %d: slice_uart        = %s\n", dom->index,
+             dom->stdout_path);
 }
