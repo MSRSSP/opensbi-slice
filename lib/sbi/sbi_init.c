@@ -38,10 +38,10 @@
 	"        | |\n"                                     \
 	"        |_|\n\n"
 
-#define MAX_NUM_HARTS 8
+#define MAX_NUM_HARTS 4
 ulong endInitTicks [MAX_NUM_HARTS] ;
 ulong startInitTicks[MAX_NUM_HARTS];
-
+int sbi_init_state;
 static void sbi_boot_print_banner(struct sbi_scratch *scratch)
 {
 	if (scratch->options & SBI_SCRATCH_NO_BOOT_PRINTS)
@@ -224,24 +224,24 @@ static void wake_coldboot_harts(struct sbi_scratch *scratch, u32 hartid)
 	spin_unlock(&coldboot_lock);
 }
 
-static unsigned long init_count_offset;
+extern unsigned long init_count_offset;
 
 static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 {
 	int rc;
 	unsigned long *init_count;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
-
+	sbi_init_state= 2;
 	/* Note: This has to be first thing in coldboot init sequence */
 	rc = sbi_scratch_init(scratch);
 	if (rc)
 		sbi_hart_hang();
-
+	sbi_init_state= 2;
 	/* Note: This has to be second thing in coldboot init sequence */
 	rc = sbi_domain_init(scratch, hartid);
 	if (rc)
 		sbi_hart_hang();
-
+	sbi_init_state= 3;
 	init_count_offset = sbi_scratch_alloc_offset(__SIZEOF_POINTER__);
 	if (!init_count_offset)
 		sbi_hart_hang();
@@ -335,12 +335,14 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 
 	wake_coldboot_harts(scratch, hartid);
 
+	/*
 	rc = slice_setup_domain(sbi_domain_thishart_ptr());
 	if (rc) {
 		slice_printf("%s: slice_setup_domain (error %d)\n",
 			   __func__, rc);
 		sbi_hart_hang();
 	}
+	*/
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
@@ -382,12 +384,15 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
+	/*
 	rc = slice_setup_domain(sbi_domain_thishart_ptr());
 	if (rc) {
 		slice_printf("%s: slice_setup_domain (error %d)\n",
 			   __func__, rc);
 		sbi_hart_hang();
 	}
+	*/
+
 	rc = sbi_platform_irqchip_init(plat, FALSE);
 	if (rc){
 		sbi_printf("hart %d hang at sbi_platform_irqchip_init\n", hartid);
@@ -396,7 +401,7 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 
 	rc = sbi_ipi_init(scratch, FALSE);
 	if (rc){
-		sbi_printf("hart %d hang at sbi_ipi_init\n", hartid);
+		sbi_printf("hart %d hang at sbi_ipi_init %d\n", hartid, rc);
 		sbi_hart_hang();
 	}
 
@@ -485,8 +490,10 @@ static atomic_t coldboot_lottery = ATOMIC_INITIALIZER(0);
  *
  * @param scratch pointer to sbi_scratch of current HART
  */
+
 void __noreturn sbi_init(struct sbi_scratch *scratch)
 {
+	sbi_init_state= 0;
 	startInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
 	bool next_mode_supported	= FALSE;
 	bool coldboot			= FALSE;
@@ -496,7 +503,7 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 	if ((SBI_HARTMASK_MAX_BITS <= hartid) ||
 	    sbi_platform_hart_invalid(plat, hartid))
 		sbi_hart_hang();
-
+	sbi_init_state= 1;
 	switch (scratch->next_mode) {
 	case PRV_M:
 		next_mode_supported = TRUE;
@@ -532,22 +539,7 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 		init_warmboot(scratch, hartid);
 }
 
-unsigned long sbi_init_count(u32 hartid)
-{
-	struct sbi_scratch *scratch;
-	unsigned long *init_count;
-
-	if (!init_count_offset)
-		return 0;
-
-	scratch = sbi_hartid_to_scratch(hartid);
-	if (!scratch)
-		return 0;
-
-	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
-
-	return *init_count;
-}
+extern unsigned long sbi_init_count(u32 hartid);
 
 /**
  * Exit OpenSBI library for current HART and stop HART

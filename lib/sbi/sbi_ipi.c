@@ -45,7 +45,7 @@ static struct sbi_ipi_data * get_ipi_data(u32 hartid){
 
 static int sbi_alloc_ipi_data(){
 	const struct sbi_domain * dom = sbi_domain_thishart_ptr();
-	if(false && dom && dom->slice_type != SLICE_TYPE_SLICE)
+	if(!dom || dom->slice_type != SLICE_TYPE_SLICE)
 	{
 		ipi_data_off = sbi_scratch_alloc_offset(sizeof(struct sbi_ipi_data));
 		if (!ipi_data_off)
@@ -55,7 +55,7 @@ static int sbi_alloc_ipi_data(){
 }
 
 static bool sbi_ipi_data_exists(){
-	return (sbi_domain_thishart_ptr() &&sbi_domain_thishart_ptr()->slice_type == SLICE_TYPE_SLICE) || (ipi_data_off>0);
+	return (sbi_domain_thishart_ptr() && sbi_domain_thishart_ptr()->slice_type == SLICE_TYPE_SLICE) ||  (ipi_data_off>0);
 }
 
 static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,

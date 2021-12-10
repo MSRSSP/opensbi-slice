@@ -187,7 +187,11 @@ int slice_create_full(struct slice_options *slice_options) {
 
   dom->slice_mem_start = slice_options->mem_start;
   dom->slice_mem_size = slice_options->mem_size;
-  dom->next_addr = slice_options->mem_start + SLICE_OS_OFFSET;
+  if(dom->slice_mem_size == -1UL){
+    sbi_printf("%s:dom->slice_mem_size == -1UL\n", __func__);
+    dom->slice_type = SLICE_TYPE_STANDARD_DOMAIN;
+  }
+  dom->next_addr = slice_options->mem_start + ((dom->slice_type == SLICE_TYPE_SLICE)? SLICE_OS_OFFSET : SLICE_OS_OFFSET);
   dom->next_mode = slice_options->guest_mode;
   sbi_printf("%s: slice_options->stdout=%s\n", __func__, slice_options->stdout);
   dom->next_boot_src = slice_options->image_from;
@@ -212,7 +216,7 @@ int slice_create_full(struct slice_options *slice_options) {
     if (sbi_platform_ops(plat)->slice_register_hart &&
         sbi_platform_ops(plat)->slice_register_source) {
       sbi_platform_ops(plat)->slice_register_hart(
-          "", slice_options->hartmask.bits[0], boot_hartid,
+          (char*)"", slice_options->hartmask.bits[0], boot_hartid,
           slice_options->guest_mode, dom->slice_mem_start, dom->slice_mem_size);
       sbi_platform_ops(plat)->slice_register_source(
           boot_hartid, slice_options->image_from, slice_options->image_size,
@@ -225,7 +229,12 @@ int slice_create_full(struct slice_options *slice_options) {
 int slice_unregister(struct sbi_domain *dom) {
   const struct sbi_platform *plat =
       sbi_platform_ptr(sbi_scratch_thishart_ptr());
+  sbi_printf("%s: plat\n", __func__);
   int ret = 0, hartid;
+  if(!sbi_platform_ops(plat)->slice_unregister_hart){
+    sbi_printf("%s: unimplemented slice_unregister_hart\n", __func__);
+    return SBI_ERR_SLICE_NOT_IMPLEMENTED;
+  }
   sbi_hartmask_for_each_hart(hartid, &dom->assigned_harts) {
     sbi_platform_ops(plat)->slice_unregister_hart(hartid);
   }
@@ -238,8 +247,14 @@ int slice_delete(int dom_index) {
     // should never reach here.
     return SBI_ERR_SLICE_SBI_PROHIBITED;
   }
+  sbi_printf("%s: deleting slice %d in progress- get dom.\n",
+      __func__, dom_index);
   struct sbi_domain *dom = sbi_index_to_domain(dom_index);
+  sbi_printf("%s: deleting slice %d in progress- freeze.\n",
+      __func__, dom_index);
   slice_freeze(dom);
+  sbi_printf("%s: deleting slice %d in progress- unregister.\n",
+      __func__, dom_index);
   slice_unregister(dom);
   sbi_printf(
       "%s: deleting slice %d in progress. Need a reset to completely free its "
@@ -282,6 +297,7 @@ int slice_stop(int dom_index) {
   if (err) {
     return err;
   }
+  slice_status_stop(dom);
   // Now try to free this slice resource if the dom is frozen by slice_delete.
   slice_remove_if_frozen(dom);
   return 0;
@@ -292,9 +308,14 @@ int slice_hw_reset(int dom_index) {
   if (!dom) {
     return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
+  slice_status_stop(dom);
   d_reset_by_hartmask(*dom->possible_harts->bits);
   slice_remove_if_frozen(dom);
   return 0;
+}
+
+void slice_ipi_test(int dom_index){
+  slice_send_ipi_to_domain(slice_from_index(dom_index), SLICE_IPI_NONE);
 }
 
 void slice_pmp_dump_by_index(int dom_index) {

@@ -211,6 +211,9 @@ int fdt_reset_device_fixup(void *fdt, const void *dom_ptr) {
 }
 
 int slice_fixup_memory(void *fdt, const struct sbi_domain *dom) {
+  if(dom->slice_mem_size == -1UL){
+    return 0;
+  }
   int soc_offset = fdt_path_offset(fdt, "/soc");
   if (soc_offset < 0) {
     sbi_printf("%s: soc_offset<0\n", __func__);
@@ -242,34 +245,46 @@ int slice_fixup_memory(void *fdt, const struct sbi_domain *dom) {
   return 0;
 }
 
-int slice_create_domain_fdt(const void *dom_ptr) {
+void slice_copy_fdt(const struct sbi_domain *dom_ptr) {
   const struct sbi_domain *domain = (const struct sbi_domain *)dom_ptr;
   void *fdt_src, *fdt;
   if (domain->boot_hartid != current_hartid()) {
-    return 0;
+    return;
   }
-  fdt = (void *)domain->next_arg1;
+  fdt = slice_fdt(domain);
   if (fdt == NULL) {
-    return 0;
+    return;
   }
-  slice_printf("Hart-%d: %s: fdt=%lx\n", current_hartid(), __func__,
-               domain->next_arg1);
-  // TODO: reset domain memory;
   if (domain->slice_dt_src) {
     fdt_src = domain->slice_dt_src;
   } else {
     fdt_src = (void *)root.next_arg1;
   }
   copy_fdt(fdt_src, fdt);
-  fdt_cpu_fixup(fdt, dom_ptr);
-  slice_fixup_memory(fdt, domain);
+}
+
+int slice_config_domain_fdt(const struct sbi_domain *dom){
+  unsigned long start_slice_tick = csr_read(CSR_MCYCLE);
+  void * fdt = slice_fdt(dom);
+  if (fdt == NULL) {
+    return 0;
+  }
+  fdt_cpu_fixup(fdt, dom);
+  slice_fixup_memory(fdt, dom);
   // Cannot remove cpu0;
   // If exposing only cpu0, cpu3, cpu4, kernel would panic
-  fdt_reset_device_fixup(fdt, dom_ptr);
-  fdt_serial_fixup(fdt, dom_ptr);
+  fdt_reset_device_fixup(fdt, dom);
+  fdt_serial_fixup(fdt, dom);
   // slice_serial_fixup(fdt, domain);
-  fdt_fixups(fdt, dom_ptr);
-  fdt_domain_fixup(fdt, dom_ptr);
-  slice_print_fdt(fdt);
+  fdt_fixups(fdt, dom);
+  fdt_domain_fixup(fdt, dom);
+  sbi_printf("%s: hart %d: #ticks: %lu\n", __func__, current_hartid(),
+             csr_read(CSR_MCYCLE) - start_slice_tick);
+  //slice_print_fdt(fdt);
   return 0;
+}
+
+int slice_create_domain_fdt(const struct sbi_domain *dom) {
+  slice_copy_fdt(dom);
+  return slice_config_domain_fdt(dom);
 }

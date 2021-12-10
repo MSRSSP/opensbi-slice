@@ -17,7 +17,8 @@ enum slice_type {
 
 enum slice_status {
   SLICE_STATUS_DELETED,
-  SLICE_STATUS_ACTIVE,
+  SLICE_STATUS_RUNNING,
+  SLICE_STATUS_STOPPED,
   SLICE_STATUS_FROZEN,
 };
 
@@ -29,10 +30,13 @@ void* slice_allocate_domain();
 Copy the root device tree to dom->next_arg1;
 Remove unused devices and disable unused CPUs;
 */
-int slice_create_domain_fdt(const void* dom_ptr);
+int slice_create_domain_fdt(const struct sbi_domain* dom_ptr);
 
 /* Print domain fdt information.*/
 void slice_print_fdt(const void* fdt);
+
+/* Copy fdt from dom->fdt_src to dom->next_addr */
+void slice_copy_fdt(const struct sbi_domain *dom);
 
 /* Return slice boot hart if this hart belongs to a slice.*/
 int slice_boot_hart(void);
@@ -42,12 +46,7 @@ int slice_boot_hart(void);
   2. Load next-stage code (next-stage bootloader, hypervisor, or kernel)
   from src to dst, as a simplified process loading image from disk/network.
 */
-int slice_setup_domain(void* dom_ptr);
-
-// Jump to slice's sbi stage.
-void __attribute__((noreturn))
-slice_to_sbi(unsigned boothart_id, void* slice_mem_start, void* slice_sbi_start,
-             unsigned long slice_sbi_size);
+int slice_setup_domain(struct sbi_domain* dom_ptr);
 
 void dump_slice_config(const struct sbi_domain* dom_ptr);
 
@@ -78,6 +77,8 @@ struct slice_config {
   unsigned long slice_sbi_size;
 };
 
+#define slice_fdt(dom) ((void*)((struct sbi_domain*)dom)->next_arg1)
+
 bool is_slice(const struct sbi_domain* dom);
 
 unsigned int slice_host_hartid();
@@ -88,12 +89,17 @@ int register_host_hartid(unsigned int hartid);
 int slice_activate(struct sbi_domain* dom);
 int slice_freeze(struct sbi_domain* dom);
 int slice_deactivate(struct sbi_domain* dom);
+int slice_status_stop(struct sbi_domain* dom);
+int slice_status_start(struct sbi_domain* dom);
 int slice_is_active(struct sbi_domain* dom);
+int slice_is_stopped(struct sbi_domain *dom);
 int slice_is_existed(struct sbi_domain* dom);
+int slice_is_running(struct sbi_domain *dom);
+
 struct sbi_domain* slice_from_index(unsigned int index);
 struct sbi_domain* active_slice_from_index(unsigned int index);
 void nonslice_sbi_init(void);
-
+void slice_loader(struct sbi_domain *dom, unsigned long fw_src, unsigned long fw_size);
 // A security-critical function to check overlaps among slices.
 int sanitize_slice(struct sbi_domain* new_dom);
 #define slice_printf sbi_printf

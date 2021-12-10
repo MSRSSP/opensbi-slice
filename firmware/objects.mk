@@ -19,9 +19,9 @@ endif
 
 ifeq ($(FW_PIC),y)
 firmware-genflags-y +=	-DFW_PIC
-firmware-asflags-y  +=	-fpic
-firmware-cflags-y   +=	-fPIE -pie
-firmware-ldflags-y  +=  -Wl,--no-dynamic-linker
+firmware-asflags-y  +=	-fpic 
+firmware-cflags-y   +=	-fPIE -pie 
+firmware-ldflags-y  +=  -Wl,--no-dynamic-linker -Wl,-pie
 endif
 
 ifdef FW_TEXT_START
@@ -38,6 +38,7 @@ endif
 firmware-bins-$(FW_DYNAMIC) += fw_dynamic.bin
 
 firmware-bins-$(FW_JUMP) += fw_jump.bin
+firmware-bins-$(FW_SLICE) += slice_fw_dynamic.bin
 ifdef FW_JUMP_ADDR
 firmware-genflags-$(FW_JUMP) += -DFW_JUMP_ADDR=$(FW_JUMP_ADDR)
 endif

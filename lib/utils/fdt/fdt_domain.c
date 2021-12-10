@@ -217,34 +217,11 @@ skip_device_disable:
 	fdt_nop_node(fdt, poffset);
 }
 
-#define FDT_DOMAIN_MAX_COUNT		8
-#define FDT_DOMAIN_REGION_MAX_COUNT	16
-
-static u32 fdt_domains_count;
-static struct sbi_domain fdt_domains[FDT_DOMAIN_MAX_COUNT];
-static struct sbi_hartmask fdt_masks[FDT_DOMAIN_MAX_COUNT];
-static struct sbi_domain_memregion
+extern u32 fdt_domains_count;
+extern struct sbi_domain fdt_domains[FDT_DOMAIN_MAX_COUNT];
+extern struct sbi_hartmask fdt_masks[FDT_DOMAIN_MAX_COUNT];
+extern struct sbi_domain_memregion
 	fdt_regions[FDT_DOMAIN_MAX_COUNT][FDT_DOMAIN_REGION_MAX_COUNT + 1];
-
-struct sbi_domain * allocate_domain(void){
-	return &fdt_domains[fdt_domains_count];
-}
-
-struct sbi_hartmask * allocate_hartmask(void){
-	return &fdt_masks[fdt_domains_count];
-}
-
-struct sbi_domain_memregion * allocate_memregion(void){
-	return fdt_regions[fdt_domains_count];
-}
-
-void inc_domain_counter(void){
-	fdt_domains_count++;
-}
-
-unsigned read_domain_counter(void){
-	return fdt_domains_count;
-}
 
 static int __fdt_parse_region(void *fdt, int domain_offset,
 			      int region_offset, u32 region_access,

@@ -47,7 +47,7 @@ struct sbi_domain_memregion {
 };
 
 /** Maximum number of domains */
-#define SBI_DOMAIN_MAX_INDEX			32
+#define SBI_DOMAIN_MAX_INDEX			4
 
 /** Representation of OpenSBI domain */
 struct sbi_domain {

@@ -15,7 +15,7 @@
 #include <slice/slice_mgr.h>
 #include <slice/slice_pmp.h>
 
-#ifndef CONFIG_QEMU
+#if 1
 // In PolarFire, only selected memory regions support atomic operations.
 #define atomic_cmpxchg exchange
 #define atomic_read read
@@ -56,7 +56,7 @@ int slice_boot_hart(void) {
 
 int slice_activate(struct sbi_domain *dom) {
   enum slice_status oldstate = atomic_cmpxchg(
-      &dom->slice_status, SLICE_STATUS_DELETED, SLICE_STATUS_ACTIVE);
+      &dom->slice_status, SLICE_STATUS_DELETED, SLICE_STATUS_STOPPED);
   if (oldstate != SLICE_STATUS_DELETED) {
     return SBI_ERR_SLICE_STATUS;
   }
@@ -64,10 +64,12 @@ int slice_activate(struct sbi_domain *dom) {
 }
 
 int slice_freeze(struct sbi_domain *dom) {
-  int oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_ACTIVE,
+  int oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_RUNNING,
                                 SLICE_STATUS_FROZEN);
-  if (oldstate != SLICE_STATUS_ACTIVE) {
-    return SBI_ERR_SLICE_STATUS;
+  oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_STOPPED,
+                            SLICE_STATUS_FROZEN);
+  if (oldstate != SLICE_STATUS_RUNNING && oldstate != SLICE_STATUS_STOPPED){
+      return SBI_ERR_SLICE_STATUS;
   }
   return 0;
 }
@@ -81,8 +83,37 @@ int slice_deactivate(struct sbi_domain *dom) {
   return 0;
 }
 
+int slice_status_stop(struct sbi_domain *dom) {
+  int oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_RUNNING,
+                                SLICE_STATUS_STOPPED);
+  if (oldstate != SLICE_STATUS_RUNNING) {
+    return SBI_ERR_SLICE_STATUS;
+  }
+  return 0;
+}
+
+int slice_status_start(struct sbi_domain *dom) {
+  int oldstate = atomic_cmpxchg(&dom->slice_status, SLICE_STATUS_STOPPED,
+                                SLICE_STATUS_RUNNING);
+  if (oldstate != SLICE_STATUS_STOPPED) {
+    return SBI_ERR_SLICE_STATUS;
+  }
+  return 0;
+}
+
 int slice_is_active(struct sbi_domain *dom) {
-  return atomic_read(&dom->slice_status) == SLICE_STATUS_ACTIVE;
+  int state = atomic_read(&dom->slice_status);
+  return (state == SLICE_STATUS_RUNNING) || (state == SLICE_STATUS_STOPPED);
+}
+
+int slice_is_running(struct sbi_domain *dom) {
+  int state = atomic_read(&dom->slice_status);
+  return state == SLICE_STATUS_RUNNING;
+}
+
+int slice_is_stopped(struct sbi_domain *dom) {
+  int state = atomic_read(&dom->slice_status);
+  return state == SLICE_STATUS_STOPPED;
 }
 
 int slice_is_existed(struct sbi_domain *dom) {
@@ -103,151 +134,6 @@ struct sbi_domain *active_slice_from_index(unsigned int dom_index) {
 }
 
 #define SBI_IMAGE_SIZE 0x200000
-static void load_next_stage(const void *dom_ptr) {
-  unsigned long startTicks = csr_read(CSR_MCYCLE);
-  const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
-  void *dst = (void *)dom->next_addr;
-  void *src = (void *)dom->next_boot_src;
-  if (dst == 0 || src == 0) {
-    return;
-  }
-  if (src != dst) {
-    slice_printf("%s: hart %d: %lx-> %lx, %x\n", __func__, current_hartid(),
-                 dom->next_boot_src, dom->next_addr, dom->next_boot_size);
-    sbi_memcpy(dst, src, dom->next_boot_size);
-  }
-  sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
-             csr_read(CSR_MCYCLE) - startTicks);
-}
-
-/*
-static void zero_slice_memory(void *dom_ptr)
-{
-        unsigned long startTicks = csr_read(CSR_MCYCLE);
-        struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
-        if (dom->next_addr) {
-                slice_printf("Zero Slice Mem (%lx, %lx).\n", dom->next_addr,
-                                 dom->slice_mem_start - dom->next_addr +
-dom->slice_mem_size); sbi_memset((void *) dom->next_addr, 0,
-dom->slice_mem_start - dom->next_addr + dom->slice_mem_size);
-        }
-        sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
-                   csr_read(CSR_MCYCLE) - startTicks);
-}
-*/
-
-int jump_sbi_status = 0;
-
-static void __attribute__((noreturn))
-slice_jump_sbi(unsigned boothart_id, unsigned long next_addr,
-               unsigned long next_mode) {
-#if __riscv_xlen == 32
-  unsigned long val, valH;
-#else
-  unsigned long val;
-#endif
-  jump_sbi_status = 1;
-  sbi_printf("%s(): next_addr=%#lx next_mode=%#lx\n", __func__, next_addr,
-             next_mode);
-
-  switch (next_mode) {
-    case PRV_M:
-      break;
-    case PRV_S:
-    case PRV_U:
-    default:
-      sbi_hart_hang();
-  }
-
-  val = csr_read(CSR_MSTATUS);
-  val = INSERT_FIELD(val, MSTATUS_MPP, next_mode);
-  val = INSERT_FIELD(val, MSTATUS_MPIE, 0);
-#if __riscv_xlen == 32
-  if (misa_extension('H')) {
-    valH = csr_read(CSR_MSTATUSH);
-    valH = INSERT_FIELD(valH, MSTATUSH_MPV, 0);
-    csr_write(CSR_MSTATUSH, valH);
-  }
-#else
-  if (misa_extension('H')) {
-    val = INSERT_FIELD(val, MSTATUS_MPV, 0);
-  }
-#endif
-  // Disable all interrupts;
-  csr_write(CSR_MIE, 0);
-  csr_write(CSR_MSTATUS, val);
-  csr_write(CSR_MEPC, next_addr);
-
-  if (next_mode == PRV_S) {
-    csr_write(CSR_STVEC, next_addr);
-    csr_write(CSR_SSCRATCH, 0);
-    csr_write(CSR_SIE, 0);
-    csr_write(CSR_SATP, 0);
-  } else if (next_mode == PRV_U) {
-    if (misa_extension('N')) {
-      csr_write(CSR_UTVEC, next_addr);
-      csr_write(CSR_USCRATCH, 0);
-      csr_write(CSR_UIE, 0);
-    }
-  }
-  register unsigned long a0 asm("a0") = boothart_id;
-  __asm__ __volatile__("mret" : : "r"(a0));
-  __builtin_unreachable();
-}
-
-void __attribute__((noreturn))
-slice_to_sbi(unsigned boothart_id, void *slice_mem_start, void *slice_sbi_start,
-             unsigned long slice_sbi_size) {
-  slice_printf("%s: hart%d: next sbi is %p (copy from %p)\n", __func__,
-               current_hartid(), slice_mem_start, slice_sbi_start);
-  if (slice_sbi_size > 0) {
-    sbi_memcpy(slice_mem_start, slice_sbi_start, slice_sbi_size);
-  }
-  slice_jump_sbi(boothart_id, (unsigned long)slice_mem_start, PRV_M);
-  __builtin_unreachable();
-}
-
-void nonslice_sbi_init(void) {
-  csr_write(CSR_STVEC, 0);
-  emptyslice_setup_pmp();
-}
-
-int slice_setup_domain(void *dom_ptr) {
-  slice_printf("%s: hart%d\n", __func__, current_hartid());
-  ulong start_slice_tick = csr_read(CSR_MCYCLE);
-  int ret = 0;
-  if (dom_ptr == 0) {
-    // This hart does not belong to any domain.
-    slice_printf("%s: hart%d dom_ptr == empty\n", __func__, current_hartid());
-    return ret;
-  }
-
-  struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
-
-  if (!is_slice(dom) || !slice_is_active(dom)) {
-    emptyslice_setup_pmp();
-    return 0;
-  }
-  if (dom->boot_hartid == current_hartid()) {
-    // cleared by slice bootloader before sbi_init
-    // zero_slice_memory(dom_ptr);
-    load_next_stage(dom_ptr);
-    ret = slice_create_domain_fdt(dom_ptr);
-    if (ret) {
-      return ret;
-    }
-  }
-  ret = slice_setup_pmp(dom_ptr);
-  if (ret) {
-    return ret;
-  }
-  sbi_scratch_thishart_ptr()->next_arg1 = dom->next_arg1;
-  sbi_scratch_thishart_ptr()->next_addr = dom->next_addr;
-  unsigned long end_slice_tick = csr_read(CSR_MCYCLE);
-  sbi_printf("%s: hart %d: #ticks: %lu\n", __func__, current_hartid(),
-             end_slice_tick - start_slice_tick);
-  return ret;
-}
 
 void *slice_allocate_domain(struct sbi_hartmask *input_mask) {
   if (read_domain_counter() >= FDT_DOMAIN_MAX_COUNT) {
@@ -303,8 +189,8 @@ int sanitize_slice(struct sbi_domain *new_dom) {
       new_dom->boot_hartid > last_hartid_having_scratch) {
     return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
   }
-  if (new_dom->slice_mem_size == 0) {
-    return SBI_ERR_SLICE_ILLEGAL_ARGUMENT;
+  if (new_dom->slice_mem_size == -1UL) {
+    new_dom->slice_type = SLICE_TYPE_STANDARD_DOMAIN;
   }
   return 0;
 }

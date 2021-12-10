@@ -132,11 +132,11 @@ int slice_calculate_pmp_for_mem(unsigned long addr, unsigned long size,
   return naturally_aligned ? 1 : 2;
 }
 
-int slice_set_pmp_for_mem(unsigned pmp_index, unsigned long prot,
+int slice_set_pmp_for_mem(int pmp_index, unsigned long prot,
                           unsigned long addr, unsigned long size,
                           bool force_override) {
   unsigned order = log2roundup(size);
-  unsigned requested_pmp =
+  int requested_pmp =
       slice_calculate_pmp_for_mem(addr, size, force_override);
   int err;
   unsigned long exist_prot, exist_addr, exist_order;
@@ -200,11 +200,12 @@ void slice_pmp_init() {
   }
 }
 
-static int slice_setup_pmp_for_ipi_data(unsigned pmp_index, void *dom_ptr) {
+static int slice_setup_pmp_for_ipi_data(int pmp_index0, void *dom_ptr) {
   slice_printf("hart %d: %s\n", current_hartid(), __func__);
   const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
   unsigned hartid = 0, prev_assigned_hartid = 0;
   unsigned long addr = 0, size = 0, delta = sizeof(struct slice_ipi_data);
+  int pmp_index;
   sbi_hartmask_for_each_hart(hartid, dom->possible_harts) {
     if (!addr) {
       addr = (unsigned long)slice_ipi_data_ptr(hartid);
@@ -212,7 +213,7 @@ static int slice_setup_pmp_for_ipi_data(unsigned pmp_index, void *dom_ptr) {
     } else if ((hartid - prev_assigned_hartid) == 1) {
       size += delta;
     } else if (size) {
-      pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L | PMP_W | PMP_R,
+      pmp_index = slice_set_pmp_for_mem(pmp_index0, SLICE_PMP_L | PMP_W | PMP_R,
                                         addr, size, false);
       if (pmp_index < 0) {
         return pmp_index;
@@ -223,13 +224,13 @@ static int slice_setup_pmp_for_ipi_data(unsigned pmp_index, void *dom_ptr) {
     prev_assigned_hartid = hartid;
   }
   if (size) {
-    pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L | PMP_W | PMP_R,
+    pmp_index = slice_set_pmp_for_mem(pmp_index0, SLICE_PMP_L | PMP_W | PMP_R,
                                       addr, size, false);
   }
   return pmp_index;
 }
 
-static int slice_setup_pmp_for_ipi(unsigned pmp_index, void *dom_ptr) {
+static int slice_setup_pmp_for_ipi(int pmp_index, void *dom_ptr) {
   slice_printf("hart %d: %s\n", current_hartid(), __func__);
   const struct sbi_ipi_device *ipi_dev = sbi_ipi_get_device();
   const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
@@ -295,7 +296,7 @@ void slice_pmp_dump() {
 int slice_setup_pmp(void *dom_ptr) {
   struct sbi_domain_memregion *reg;
   struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
-  unsigned int pmp_index = 0;
+  int pmp_index = 0;
   unsigned long pmp_flags = 0;
   // TODO(ziqiao): Remove unlocked PMP for firmware access.
   // copy scratch->fw_start to domain memory,
@@ -347,10 +348,8 @@ int slice_setup_pmp(void *dom_ptr) {
 }
 
 int nonslice_setup_pmp(void *dom_ptr) {
-  slice_printf("__func__=%s\n", __func__);
-  int pmp_index = 0;
-  pmp_index =
-      slice_set_pmp_for_mem(pmp_index, PMP_W | PMP_R | PMP_X, 0, -1UL, false);
+  slice_printf("%s\n", __func__);
+  pmp_set(0, PMP_R |PMP_W | PMP_X  , 0, __riscv_xlen);
   slice_pmp_dump();
   return 0;
 }
@@ -390,4 +389,9 @@ int slice0_setup_pmp(void) {
                             CONFIG_SLICE0_NON_SECURE_MEM_START,
                             CONFIG_SLICE0_NON_SECURE_MEM_SIZE, false);
   return 0;
+}
+
+void nonslice_sbi_init(void) {
+  csr_write(CSR_STVEC, 0);
+  emptyslice_setup_pmp();
 }

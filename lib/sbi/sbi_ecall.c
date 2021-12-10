@@ -171,9 +171,9 @@ int sbi_ecall_init(void)
 	if (ret)
 		return ret;
 
-	ret = slice_init_host_ecall_handler();
+	/*ret = slice_init_host_ecall_handler();
 	if (ret)
 		return ret;
-
+	*/
 	return 0;
 }

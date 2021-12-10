@@ -56,4 +56,7 @@ int slice_stop(int dom_index);
 int slice_hw_reset(int dom_index);
 void slice_pmp_dump_by_index(int dom_index);
 void dump_slices_config(void);
+// Test only; 
+// TBD: remove in production.
+void slice_ipi_test(int dom_index);
 #endif // __SLICE_MGR_H
