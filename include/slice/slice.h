@@ -51,6 +51,7 @@ int slice_setup_domain(struct sbi_domain* dom_ptr);
 void dump_slice_config(const struct sbi_domain* dom_ptr);
 
 #define SLICE_UART_PATH_LEN 32
+#define MAX_HART_NUM 8
 struct slice_config {
   enum slice_type slice_type;
 #ifndef CONFIG_QEMU
@@ -75,7 +76,12 @@ struct slice_config {
   unsigned long slice_mem_size;
   unsigned long slice_sbi_start;
   unsigned long slice_sbi_size;
+  unsigned long slice_start_time[MAX_HART_NUM];
 };
+
+#define report_time() {\
+  sbi_printf("%s: hart %d: #ticks =: %lu\n",\
+  __func__, current_hartid(), csr_read(CSR_MCYCLE) - root.slice_start_time[current_hartid()]);}
 
 #define slice_fdt(dom) ((void*)((struct sbi_domain*)dom)->next_arg1)
 
@@ -102,6 +108,6 @@ void nonslice_sbi_init(void);
 void slice_loader(struct sbi_domain *dom, unsigned long fw_src, unsigned long fw_size);
 // A security-critical function to check overlaps among slices.
 int sanitize_slice(struct sbi_domain* new_dom);
-#define slice_printf sbi_printf
-//#define slice_printf(x, ...) {}
+//#define slice_printf sbi_printf
+#define slice_printf(x, ...) {}
 #endif  // __D_H__

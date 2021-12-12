@@ -126,7 +126,7 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 		if(current_hartid() == sbi_domain_thishart_ptr()->boot_hartid)
 		wfi();
 	};
-	sbi_printf("%d: complte the wait for SBI_HSM_STATE_START_PENDING\n", hartid);
+	//slice_printf("%d: complte the wait for SBI_HSM_STATE_START_PENDING\n", hartid);
 
 	/* Restore MIE CSR */
 	csr_write(CSR_MIE, saved_mie);

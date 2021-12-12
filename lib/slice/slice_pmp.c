@@ -232,16 +232,18 @@ static int slice_setup_pmp_for_ipi_data(int pmp_index0, void *dom_ptr) {
   return pmp_index;
 }
 
+extern struct sbi_ipi_device clint_ipi;
+#define MPFS_CLINT_ADDR 0x2000000
+#define IPI_REG_WIDTH 4
 static int slice_setup_pmp_for_ipi(int pmp_index, void *dom_ptr) {
   slice_printf("hart %d: %s\n", current_hartid(), __func__);
-  const struct sbi_ipi_device *ipi_dev = sbi_ipi_get_device();
   const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
   unsigned hartid = 0, prev_assigned_hartid = 0;
   unsigned long addr = 0, size = 0;
   sbi_hartmask_for_each_hart(hartid, dom->possible_harts) {
     slice_printf("hart %d is assigned to dom %s\n", hartid, dom->name);
     if (!addr) {
-      addr = ipi_dev->ipi_addr(hartid);
+      addr = MPFS_CLINT_ADDR + hartid * IPI_REG_WIDTH;
       size += 4;
     } else if ((hartid - prev_assigned_hartid) == 1) {
       size += 4;
@@ -322,10 +324,7 @@ int slice_setup_pmp(void *dom_ptr) {
     return pmp_index;
   }
 
-  slice_printf("dom ptr = %lx\n", (unsigned long)dom);
   sbi_domain_for_each_memregion(dom, reg) {
-    slice_printf("%s: hart %d: mem region (%lx, %lx)\n", __func__,
-                 current_hartid(), reg->base, reg->order);
     pmp_flags = SLICE_PMP_L;
     if (reg->flags & SBI_DOMAIN_MEMREGION_READABLE) pmp_flags |= PMP_R;
     if (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) pmp_flags |= PMP_W;
@@ -340,6 +339,8 @@ int slice_setup_pmp(void *dom_ptr) {
       return pmp_index;
     }
   }
+  pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L|PMP_R|PMP_W|PMP_X, dom->slice_mem_start,
+                                      dom->slice_mem_size, false);
   // Do not allow access to other regions;
   pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L, 0, -1UL, false);
   if (pmp_index < 0) {

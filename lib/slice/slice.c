@@ -20,11 +20,13 @@
 #define atomic_cmpxchg exchange
 #define atomic_read read
 
-long read(long *data) { return *data; }
+long read(long *data) { return __smp_load_acquire(data); }
 
 long exchange(long *data, long current_val, long target_val) {
-  long old_val = *data;
-  *data = (old_val == current_val) ? target_val : old_val;
+  long old_val = read(data);
+  if(old_val == current_val){
+    __smp_store_release(data, target_val);
+  }
   return old_val;
 }
 #endif
@@ -209,6 +211,7 @@ void dump_slice_config(const struct sbi_domain *dom) {
   sbi_hartmask_for_each_hart(i, dom->possible_harts)
       sbi_printf("%s%d%s", (k++) ? "," : "", i,
                  sbi_domain_is_assigned_hart(dom, i) ? "*" : "");
+
   sbi_printf("\n");
   sbi_printf("slice %d: slice_mem_start   = 0x%lx\n", dom->index,
              dom->slice_mem_start);
@@ -231,4 +234,6 @@ void dump_slice_config(const struct sbi_domain *dom) {
              dom->index, dom->next_arg1);
   sbi_printf("slice %d: slice_uart        = %s\n", dom->index,
              dom->stdout_path);
+  sbi_hartmask_for_each_hart(i, dom->possible_harts)
+      sbi_printf("slice %d: slice_start_time =%lu\n", dom->index, dom->slice_start_time[i]);
 }

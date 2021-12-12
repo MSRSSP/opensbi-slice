@@ -27,37 +27,6 @@ static void load_next_stage(const void *dom_ptr) {
   }
 }
 
-/*
-static void copy_fdt(const void *src_fdt, void *dst_fdt) {
-  unsigned long startTicks = csr_read(CSR_MCYCLE);
-  if (dst_fdt && (fdt_totalsize(src_fdt) != 0)) {
-    slice_printf("duplicate %lx -> %lx\n", (unsigned long)src_fdt,
-                 (unsigned long)dst_fdt);
-    sbi_memcpy(dst_fdt, src_fdt, fdt_totalsize(src_fdt));
-  }
-  sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
-             csr_read(CSR_MCYCLE) - startTicks);
-}
-
-static void slice_copy_fdt(const struct sbi_domain *dom_ptr) {
-  const struct sbi_domain *domain = (const struct sbi_domain *)dom_ptr;
-  void *fdt_src, *fdt;
-  if (domain->boot_hartid != current_hartid()) {
-    return;
-  }
-  fdt = slice_fdt(domain);
-  if (fdt == NULL) {
-    return;
-  }
-  if (domain->slice_dt_src) {
-    fdt_src = domain->slice_dt_src;
-  } else {
-    fdt_src = (void *)root.next_arg1;
-  }
-  copy_fdt(fdt_src, fdt);
-}
-*/
-
 static void slice_copy_to_private_mem(struct sbi_domain *dom) {
   slice_copy_fdt(dom);
   load_next_stage(dom);
@@ -96,13 +65,21 @@ static void __noreturn slice_loader_finish_guest(struct sbi_scratch *private_scr
     dom->possible_harts = &local_hmask;
     dom->regions = local_memregs;
   }
-  nonslice_setup_pmp();
+  slice_setup_pmp(dom);
+  //nonslice_setup_pmp();
+
   if(is_boot_hartid){
     slice_config_domain_fdt(dom);
   }
   while(!__smp_load_acquire(&slice_loader_state)){
   }
   sbi_slice_init(private_scratch, is_boot_hartid);
+}
+
+static void slice_loader_finish_nonslice(struct sbi_scratch *private_scratch, struct sbi_domain *shared_dom) {
+  root.next_addr =  shared_dom->next_addr;
+  root.next_arg1 =  shared_dom->next_arg1;
+  nonslice_setup_pmp();
 }
 
 void __noreturn slice_loader_finish(struct sbi_scratch *private_scratch,
@@ -118,9 +95,8 @@ void __noreturn slice_loader_finish(struct sbi_scratch *private_scratch,
     wfi();
     __builtin_unreachable();
   }else{
-    nonslice_setup_pmp();
+    slice_loader_finish_nonslice(private_scratch, shared_dom);
     sbi_init(private_scratch);
     __builtin_unreachable();
   }
-
 }

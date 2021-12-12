@@ -348,10 +348,7 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	(*init_count)++;
 
 	sbi_hsm_prepare_next_jump(scratch, hartid);
-	endInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
-	sbi_printf("hart %d: #ticks in sbi_init before switching to S mode: %lu\n",current_hartid(),
-		   endInitTicks[current_hartid()] -
-			   startInitTicks[current_hartid()]);
+	report_time()
 	slice_print_fdt(slice_fdt(sbi_domain_thishart_ptr()));
 	sbi_hart_switch_mode(hartid, scratch->next_arg1, scratch->next_addr,
 			     scratch->next_mode, FALSE);
@@ -362,7 +359,6 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 	int rc;
 	unsigned long *init_count;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
-	sbi_printf("%s: hart %d\n", __func__, hartid);
 	if (!init_count_offset){
 		sbi_hart_hang();
 	}
@@ -431,10 +427,7 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
-	endInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
-	sbi_printf("warm boot hart %d: #ticks in sbi_init before switching to S mode: %lu\n",current_hartid(),
-		   endInitTicks[current_hartid()] -
-			   startInitTicks[current_hartid()]);
+	report_time()
 	sbi_hsm_prepare_next_jump(scratch, hartid);
 }
 
@@ -460,7 +453,6 @@ static void __noreturn init_warmboot(struct sbi_scratch *scratch, u32 hartid)
 	int hstate;
 
 	wait_for_coldboot(scratch, hartid);
-	sbi_printf("%s: hart %d\n", __func__, hartid);
 
 	hstate = sbi_hsm_hart_get_state(sbi_domain_thishart_ptr(), hartid);
 	if (hstate < 0){

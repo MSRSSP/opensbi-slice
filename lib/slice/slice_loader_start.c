@@ -13,7 +13,7 @@
 void __attribute__((noreturn))
 slice_jump_to_fw(unsigned long next_addr,
                  unsigned long arg0, unsigned long arg1, unsigned long arg2) {
-  sbi_printf("%s: hartid=%d next_addr=%#lx\n", __func__, current_hartid(), next_addr);
+  sbi_printf("%s: hartid=%d next_addr=%#lx: arg: %lx %lx %lx\n", __func__, current_hartid(), next_addr, arg0, arg1, arg2);
   register unsigned long a0 asm("a0") = arg0;
   register unsigned long a1 asm("a1") = arg1;
   register unsigned long a2 asm("a2") = arg2;
@@ -42,11 +42,20 @@ void __attribute__((noreturn))
 slice_loader(struct sbi_domain *dom, unsigned long fw_src,
                   unsigned long fw_size) {
   // Slice-wide initialization: loading firmware into slice MEM.
+  dom->slice_start_time[current_hartid()] = csr_read(CSR_MCYCLE);
   unsigned long slice_fw_start = dom->slice_mem_start;
   unsigned hartid = current_hartid();
+  fw_info[hartid].slice_cfg_ptr = (unsigned long)dom;
+  fw_info[hartid].sbi_fw_info.magic = SLICE_FW_INFO_MAGIC_VALUE;
+  fw_info[hartid].sbi_fw_info.version = SLICE_FW_INFO_VERSION_MAX;
+  fw_info[hartid].sbi_fw_info.next_addr = dom->next_addr;
+  fw_info[hartid].sbi_fw_info.next_mode = dom->next_mode;
+  fw_info[hartid].sbi_fw_info.boot_hart = dom->boot_hartid;
   if (!is_slice(dom)) {
     // bare metal boot, directlt call sbi_init.
-    sbi_init(sbi_scratch_thishart_ptr());
+    //sbi_init(sbi_scratch_thishart_ptr());
+    slice_jump_to_fw(fw_src,hartid, (unsigned long)slice_fdt(dom),
+                   (unsigned long)&fw_info[hartid]);
     __builtin_unreachable();
   }
   if (slice_is_stopped(dom) && dom->boot_hartid == hartid) {
@@ -58,12 +67,6 @@ slice_loader(struct sbi_domain *dom, unsigned long fw_src,
     sbi_memcpy((void *)slice_fw_start, (void *)fw_src, fw_size);
     slice_status_start(dom);
   }
-  fw_info[hartid].slice_cfg_ptr = (unsigned long)dom;
-  fw_info[hartid].sbi_fw_info.magic = SLICE_FW_INFO_MAGIC_VALUE;
-  fw_info[hartid].sbi_fw_info.version = SLICE_FW_INFO_VERSION_MAX;
-  fw_info[hartid].sbi_fw_info.next_addr = dom->next_addr;
-  fw_info[hartid].sbi_fw_info.next_mode = dom->next_mode;
-  fw_info[hartid].sbi_fw_info.boot_hart = dom->boot_hartid;
   while (!slice_is_running(dom)) {
   };
   //nonslice_setup_pmp(dom);

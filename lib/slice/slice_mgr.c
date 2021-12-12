@@ -21,14 +21,14 @@ struct sbi_ipi_data {
 };
 
 struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid) {
-  const struct sbi_domain *dom = sbi_hartid_to_domain(hartid);
+  /*const struct sbi_domain *dom = sbi_hartid_to_domain(hartid);
   // TBD: Use a special memory that is accessible by slice-0 and this slice.
   // This special memory is located in a slice-0 memory and is shared with
   // slice-k by adding whitelist PMP rule when slice-k starts
   if (dom == NULL) {
     sbi_printf("%s: NULL dom\n", __func__);
     sbi_hart_hang();
-  }
+  }*/
   /*
   unsigned long ptr = (unsigned long)dom->slice_mem_start +
                       SLICE_IPI_DATA_OFFSET +
@@ -191,13 +191,13 @@ int slice_create_full(struct slice_options *slice_options) {
     sbi_printf("%s:dom->slice_mem_size == -1UL\n", __func__);
     dom->slice_type = SLICE_TYPE_STANDARD_DOMAIN;
   }
-  dom->next_addr = slice_options->mem_start + ((dom->slice_type == SLICE_TYPE_SLICE)? SLICE_OS_OFFSET : SLICE_OS_OFFSET);
+  dom->next_addr = (dom->slice_type == SLICE_TYPE_SLICE) ? (slice_options->mem_start + SLICE_OS_OFFSET) : slice_options->image_from;
   dom->next_mode = slice_options->guest_mode;
   sbi_printf("%s: slice_options->stdout=%s\n", __func__, slice_options->stdout);
   dom->next_boot_src = slice_options->image_from;
   dom->next_boot_size = slice_options->image_size;
-  dom->next_arg1 = (dom->next_addr + dom->next_boot_size + 0x1000000);
   dom->slice_dt_src = (void *)slice_options->fdt_from;
+  dom->next_arg1 = (dom->slice_type == SLICE_TYPE_SLICE) ? (dom->next_addr + dom->next_boot_size + 0x1000000) : slice_options->fdt_from;
   dom->system_reset_allowed = false;
   if (sbi_platform_ops(plat)->slice_init_mem_region) {
     sbi_platform_ops(plat)->slice_init_mem_region(dom);
