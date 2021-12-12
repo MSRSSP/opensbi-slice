@@ -14,7 +14,7 @@ int slice_set_pmp_for_mem(unsigned pmp_index, unsigned long prot,
 // Set up pmp protection for a domain.
 int slice_setup_pmp(void *dom_ptr);
 int slice_pmp_dump();
-int nonslice_setup_pmp(void *dom_ptr);
+int nonslice_setup_pmp(void);
 void slice_pmp_init();
 int emptyslice_setup_pmp(void);
 int slice0_setup_pmp(void);

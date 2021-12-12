@@ -94,6 +94,8 @@
 #define MPFS_ENABLED_HART_MASK (1 << 1 | 1 << 2 | 1 << 3 | 1 << 4)
 #endif
 
+#define DOMAIN_REGION_MAX_COUNT 2
+
 /*------------------------------------------------------------------------------
  * Enable particular local interrupt
  */
@@ -167,7 +169,9 @@ static struct sbi_console_device mpfs_console = {
     .console_putc = mpfs_console_putc,
     .console_getc = mpfs_console_getc};
 
+extern void uart_init(void);
 static int mpfs_console_init(void) {
+  uart_init();
   sbi_console_set_device(&mpfs_console);
   console_initialized = true;
   return 0;
@@ -252,10 +256,6 @@ int sbi_hart_pmp_configure(struct sbi_scratch *pScratch)
     (void)pScratch;
     return 0;
 }*/
-
-#define DOMAIN_REGION_MAX_COUNT 2
-static struct sbi_domain_memregion domain_regions[MAX_NUM_HARTS]
-                                                 [DOMAIN_REGION_MAX_COUNT + 1];
 
 struct hart_info {
   char name[64];
@@ -443,13 +443,16 @@ int init_slice_mem_regions(struct sbi_domain *pDom) {
   return 0;
 }
 
-static struct sbi_domain dom_table[MAX_NUM_HARTS] = {0};
+//static struct sbi_domain dom_table[MAX_NUM_HARTS] = {0};
+//static struct sbi_domain_memregion domain_regions[MAX_NUM_HARTS]
+//                                                [DOMAIN_REGION_MAX_COUNT + 1];
 static int mpfs_domains_init(void) {
   // register all AMP domains
-  int result = SBI_EINVAL;
+  int result = 0;
   // Set hart0 as host hart;
   register_host_hartid(0);
   sbi_printf("mpfs_domains_init\n");
+  /*
   for (int hartid = 1; hartid < MAX_NUM_HARTS; hartid++) {
     const int boot_hartid = hart_table[hartid].owner_hartid;
     if(boot_hartid >= array_size(dom_table) ){
@@ -479,7 +482,7 @@ static int mpfs_domains_init(void) {
         result = slice_create_full(&options);
       }
     }
-  }
+  }*/
   sbi_printf("end mpfs_domains_init\n");
   return result;
 }

@@ -20,9 +20,10 @@ platform-cflags-y += -I$(SLICE_HSS_DIR)/boards/slice/fpga_design_config/
 platform-cflags-y += -I$(SLICE_HSS_DIR)/boards/slice/
 platform-cflags-y += -I$(SLICE_HSS_DIR)/modules/ssmb/ipi/
 platform-cflags-y += -Iinclude/sbi/
-platform-cflags-y += -Os -s -Wl,--gc-sections -fomit-frame-pointer -fno-strict-aliasing 
+platform-cflags-y += -Os -Wl,--gc-sections -fomit-frame-pointer -fno-strict-aliasing 
 platform-asflags-y =-fomit-frame-pointer -fno-strict-aliasing 
 platform-ldflags-y = -fomit-frame-pointer -fno-strict-aliasing 
+
 
 # Command for platform specific "make run"
 platform-runcmd = qemu-system-riscv$(PLATFORM_RISCV_XLEN) -M virt -m 256M \

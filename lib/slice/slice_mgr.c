@@ -196,7 +196,7 @@ int slice_create_full(struct slice_options *slice_options) {
   sbi_printf("%s: slice_options->stdout=%s\n", __func__, slice_options->stdout);
   dom->next_boot_src = slice_options->image_from;
   dom->next_boot_size = slice_options->image_size;
-  dom->next_arg1 = (dom->next_addr + dom->next_boot_size + 0x200000);
+  dom->next_arg1 = (dom->next_addr + dom->next_boot_size + 0x1000000);
   dom->slice_dt_src = (void *)slice_options->fdt_from;
   dom->system_reset_allowed = false;
   if (sbi_platform_ops(plat)->slice_init_mem_region) {

@@ -352,6 +352,7 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	sbi_printf("hart %d: #ticks in sbi_init before switching to S mode: %lu\n",current_hartid(),
 		   endInitTicks[current_hartid()] -
 			   startInitTicks[current_hartid()]);
+	slice_print_fdt(slice_fdt(sbi_domain_thishart_ptr()));
 	sbi_hart_switch_mode(hartid, scratch->next_arg1, scratch->next_addr,
 			     scratch->next_mode, FALSE);
 }
@@ -361,7 +362,7 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 	int rc;
 	unsigned long *init_count;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
-
+	sbi_printf("%s: hart %d\n", __func__, hartid);
 	if (!init_count_offset){
 		sbi_hart_hang();
 	}
@@ -459,6 +460,7 @@ static void __noreturn init_warmboot(struct sbi_scratch *scratch, u32 hartid)
 	int hstate;
 
 	wait_for_coldboot(scratch, hartid);
+	sbi_printf("%s: hart %d\n", __func__, hartid);
 
 	hstate = sbi_hsm_hart_get_state(sbi_domain_thishart_ptr(), hartid);
 	if (hstate < 0){
@@ -494,7 +496,6 @@ static atomic_t coldboot_lottery = ATOMIC_INITIALIZER(0);
 void __noreturn sbi_init(struct sbi_scratch *scratch)
 {
 	sbi_init_state= 0;
-	startInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
 	bool next_mode_supported	= FALSE;
 	bool coldboot			= FALSE;
 	u32 hartid			= current_hartid();
@@ -538,6 +539,51 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 	else
 		init_warmboot(scratch, hartid);
 }
+
+void __noreturn sbi_slice_init(struct sbi_scratch *scratch, bool coldboot)
+{
+	sbi_init_state= 0;
+	startInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
+	bool next_mode_supported	= FALSE;
+	u32 hartid			= current_hartid();
+	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
+
+	if ((SBI_HARTMASK_MAX_BITS <= hartid) ||
+	    sbi_platform_hart_invalid(plat, hartid))
+		sbi_hart_hang();
+	sbi_init_state= 1;
+	switch (scratch->next_mode) {
+	case PRV_M:
+		next_mode_supported = TRUE;
+		break;
+	case PRV_S:
+		if (misa_extension('S'))
+			next_mode_supported = TRUE;
+		break;
+	case PRV_U:
+		if (misa_extension('U'))
+			next_mode_supported = TRUE;
+		break;
+	default:
+		sbi_hart_hang();
+	}
+
+	/*
+	 * Only the HART supporting privilege mode specified in the
+	 * scratch->next_mode should be allowed to become the coldboot
+	 * HART because the coldboot HART will be directly jumping to
+	 * the next booting stage.
+	 *
+	 * We use a lottery mechanism to select coldboot HART among
+	 * HARTs which satisfy above condition.
+	 */
+
+	if (coldboot && next_mode_supported)
+		init_coldboot(scratch, hartid);
+	else
+		init_warmboot(scratch, hartid);
+}
+
 
 extern unsigned long sbi_init_count(u32 hartid);
 

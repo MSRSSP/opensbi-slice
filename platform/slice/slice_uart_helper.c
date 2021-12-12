@@ -194,3 +194,22 @@ bool uart_getchar(uint8_t *pbuf, int32_t timeout_sec, bool do_sec_tick)
 
     return result;
 }
+
+void uart_init(void){
+    MSS_UART_init(&g_mss_uart0_lo, MSS_UART_115200_BAUD,
+        MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
+
+    // default all UARTs to 115200 for now
+    // subsequent OS loads can change these if needed...
+    MSS_UART_init(&g_mss_uart1_lo, MSS_UART_115200_BAUD,
+        MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
+
+    MSS_UART_init(&g_mss_uart2_lo, MSS_UART_115200_BAUD,
+        MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
+
+    MSS_UART_init(&g_mss_uart3_lo, MSS_UART_115200_BAUD,
+        MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
+
+    MSS_UART_init(&g_mss_uart4_lo, MSS_UART_115200_BAUD,
+        MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
+}

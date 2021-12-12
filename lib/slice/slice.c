@@ -173,7 +173,7 @@ static bool slice_cpu_overlap(struct sbi_domain *dom1,
 
 int sanitize_slice(struct sbi_domain *new_dom) {
   struct sbi_domain *dom;
-  for (size_t i = 0; i < SBI_DOMAIN_MAX_INDEX; ++i) {
+  for (size_t i = 1; i < SBI_DOMAIN_MAX_INDEX; ++i) {
     if ((dom = slice_from_index(i))) {
       if (slice_mem_overlap(new_dom, dom)) {
         dump_slice_config(dom);
@@ -224,7 +224,7 @@ void dump_slice_config(const struct sbi_domain *dom) {
              (unsigned long)dom->next_boot_size);
   sbi_printf(
       "slice %d: guest_kernel_start= 0x%lx (copy from guest_kernel_src)\n",
-      dom->index, dom->next_arg1);
+      dom->index, dom->next_addr);
   sbi_printf("slice %d: guest_fdt_src     = 0x%lx (loaded by slice-0)\n",
              dom->index, (unsigned long)dom->slice_dt_src);
   sbi_printf("slice %d: slice_fdt_start   = 0x%lx (copy from guest_fdt_src)\n",

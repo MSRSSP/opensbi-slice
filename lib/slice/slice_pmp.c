@@ -72,10 +72,12 @@ static int detect_region_covered_by_pmp(uintptr_t addr, uintptr_t size) {
 }
 
 static int _pmp_regions() {
+  return 16;
+  /*
   if (current_hartid() == 0) {
     return 16;
   }
-  return sbi_hart_pmp_count(sbi_scratch_thishart_ptr());
+  return sbi_hart_pmp_count(sbi_scratch_thishart_ptr());*/
 }
 
 int pmp_set_non_natural_aligned(unsigned int pmp_index, unsigned long prot,
@@ -343,21 +345,16 @@ int slice_setup_pmp(void *dom_ptr) {
   if (pmp_index < 0) {
     return pmp_index;
   }
-  slice_pmp_dump();
   return 0;
 }
 
-int nonslice_setup_pmp(void *dom_ptr) {
-  slice_printf("%s\n", __func__);
+int nonslice_setup_pmp(void) {
   pmp_set(0, PMP_R |PMP_W | PMP_X  , 0, __riscv_xlen);
-  slice_pmp_dump();
   return 0;
 }
 
 int emptyslice_setup_pmp(void) {
-  slice_printf("%s: hart%d\n", __func__, current_hartid());
   pmp_set(0, SLICE_PMP_L, 0, __riscv_xlen);
-  slice_pmp_dump();
   return 0;
 }
 
@@ -365,7 +362,6 @@ atomic_t slice_0_pmp_status = ATOMIC_INITIALIZER(0);
 #define CONFIG_SLICE0_NON_SECURE_MEM_START 0xa8000000
 #define CONFIG_SLICE0_NON_SECURE_MEM_SIZE 0x8000000
 int slice0_setup_pmp(void) {
-  slice_printf("%s: hart%d\n", __func__, current_hartid());
   // Deny rule.
   int slice0_pmp_status = atomic_add_return(&slice_0_pmp_status, 1);
   if (slice0_pmp_status != 1) {

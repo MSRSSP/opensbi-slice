@@ -264,7 +264,6 @@ void slice_copy_fdt(const struct sbi_domain *dom_ptr) {
 }
 
 int slice_config_domain_fdt(const struct sbi_domain *dom){
-  unsigned long start_slice_tick = csr_read(CSR_MCYCLE);
   void * fdt = slice_fdt(dom);
   if (fdt == NULL) {
     return 0;
@@ -278,9 +277,6 @@ int slice_config_domain_fdt(const struct sbi_domain *dom){
   // slice_serial_fixup(fdt, domain);
   fdt_fixups(fdt, dom);
   fdt_domain_fixup(fdt, dom);
-  sbi_printf("%s: hart %d: #ticks: %lu\n", __func__, current_hartid(),
-             csr_read(CSR_MCYCLE) - start_slice_tick);
-  //slice_print_fdt(fdt);
   return 0;
 }
 
