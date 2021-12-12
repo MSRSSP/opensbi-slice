@@ -44,7 +44,7 @@ void sbi_putc(char ch)
 void sbi_puts(const char *str)
 {
 	//spin_lock(&console_out_lock);
-	while(__smp_load_acquire(&console_out_lock))
+	while(__smp_load_acquire(&console_out_lock)){};
 	__smp_store_release(&console_out_lock, 1);
 	while (*str) {
 		sbi_putc(*str);
@@ -375,7 +375,7 @@ int sbi_printf(const char *format, ...)
 	va_list args;
 	int retval;
 
-	while(__smp_load_acquire(&console_out_lock))
+	while(__smp_load_acquire(&console_out_lock)){}
 	__smp_store_release(&console_out_lock, 1);
 	//spin_lock(&console_out_lock);
 	va_start(args, format);
