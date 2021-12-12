@@ -534,6 +534,7 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 
 void __noreturn sbi_slice_init(struct sbi_scratch *scratch, bool coldboot)
 {
+	report_time()
 	sbi_init_state= 0;
 	startInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
 	bool next_mode_supported	= FALSE;
