@@ -214,7 +214,7 @@ _relocate_done:
 	fence	rw, rw
 
 	/* At this point we are running from link address */
-
+	
 	/* Reset all registers for boot HART */
 	li	ra, 0
 	call	_reset_regs
@@ -236,10 +236,18 @@ _bss_zero:
 	li	s5, (SBI_SCRATCH_SIZE * 2)
 	add	sp, s4, s5
 
+	csrw	CSR_MSCRATCH, tp
+	lla	a6, slice_fw_state
+	li s6, 1
+	REG_S	s6, (a6)
 	/* Allow main firmware to save info */
 	MOV_5R	s0, a0, s1, a1, s2, a2, s3, a3, s4, a4
 	call	fw_save_info
 	MOV_5R	a0, s0, a1, s1, a2, s2, a3, s3, a4, s4
+	csrw	CSR_MSCRATCH, tp
+	lla	a4, slice_fw_state
+	li s1, 2
+	REG_S	s1, (a4)
 
 #ifdef FW_FDT_PATH
 	/* Override previous arg1 */
@@ -256,6 +264,9 @@ _bss_zero:
 	add	t0, a0, zero
 	MOV_5R	a0, s0, a1, s1, a2, s2, a3, s3, a4, s4
 	add	a1, t0, zero
+	lla	a4, slice_fw_state
+	li s1, 3
+	REG_S	s1, (a4)
 
 	/* Preload HART details
 	 * s7 -> HART Count
@@ -280,6 +291,9 @@ _bss_zero:
 	li	t2, 1
 	/* hartid 0 is mandated by ISA */
 	li	t1, 0
+	lla	a4, slice_fw_state
+	li s1, 4
+	REG_S	s1, (a4)
 _scratch_init:
 	add	tp, t3, zero
 	mul	a5, s8, t1
@@ -470,7 +484,7 @@ _start_warm:
 	/* update the mscratch */
 	csrw	CSR_MSCRATCH, tp
 	lla	a4, slice_fw_state
-	li s1, 3
+	li s1, 2
 	REG_S	s1, (a4)
 	/* Setup stack */
 	add	sp, tp, zero
@@ -502,12 +516,12 @@ _skip_trap_exit_rv32_hyp:
 	/* Initialize SBI runtime */
 	call 	slice_cfg_addr
 	lla	a4, slice_fw_state
-	li s1, 1
+	li s1, 5
 	REG_S	s1, (a4)
 	mv 		a1, a0
 	csrr	a0, CSR_MSCRATCH
 	lla	a4, slice_fw_state
-	li s1, 2
+	li s1, 6
 	REG_S	s1, (a4)
 	call	slice_loader_finish
 
@@ -613,7 +627,7 @@ fw_platform_init:
 	/* Swap TP and MSCRATCH */
 	csrrw	tp, CSR_MSCRATCH, tp
 	lla	a4, slice_fw_state
-	li s1, 4
+	li s1, 7
 	REG_S	s1, (a4)
 .endm
 

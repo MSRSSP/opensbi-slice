@@ -13,7 +13,6 @@
 void __attribute__((noreturn))
 slice_jump_to_fw(unsigned long next_addr,
                  unsigned long arg0, unsigned long arg1, unsigned long arg2) {
-  sbi_printf("%s: hartid=%d next_addr=%#lx: arg: %lx %lx %lx\n", __func__, current_hartid(), next_addr, arg0, arg1, arg2);
   register unsigned long a0 asm("a0") = arg0;
   register unsigned long a1 asm("a1") = arg1;
   register unsigned long a2 asm("a2") = arg2;
@@ -37,14 +36,17 @@ static void zero_slice_memory(void *dom_ptr) {
              csr_read(CSR_MCYCLE) - startTicks);
 }
 
-static struct slice_fw_info fw_info[MAX_HART_NUM];
+struct slice_fw_info fw_info[MAX_HART_NUM];
+extern unsigned long hss_start_time[5];
 void __attribute__((noreturn))
 slice_loader(struct sbi_domain *dom, unsigned long fw_src,
                   unsigned long fw_size) {
   // Slice-wide initialization: loading firmware into slice MEM.
-  dom->slice_start_time[current_hartid()] = csr_read(CSR_MCYCLE);
-  unsigned long slice_fw_start = dom->slice_mem_start;
   unsigned hartid = current_hartid();
+  dom->slice_start_time[hartid] = csr_read(CSR_MCYCLE);
+  unsigned long slice_fw_start = dom->slice_mem_start;
+  sbi_printf("reset -> %s: hart %d: #ticks = %lu\n", __func__, hartid,
+             dom->slice_start_time[hartid] - hss_start_time[hartid]);
   fw_info[hartid].slice_cfg_ptr = (unsigned long)dom;
   fw_info[hartid].sbi_fw_info.magic = SLICE_FW_INFO_MAGIC_VALUE;
   fw_info[hartid].sbi_fw_info.version = SLICE_FW_INFO_VERSION_MAX;
@@ -63,13 +65,16 @@ slice_loader(struct sbi_domain *dom, unsigned long fw_src,
     if (!fw_size) {
       sbi_hart_hang();
     }
-    slice_printf("relocate_sbi to %lx from %lx.\n", slice_fw_start, fw_src);
+    unsigned long startTicks = csr_read(CSR_MCYCLE);
     sbi_memcpy((void *)slice_fw_start, (void *)fw_src, fw_size);
+    sbi_printf("copy slice_fw: hart %d: #ticks = %lu\n", current_hartid(),
+             csr_read(CSR_MCYCLE) - startTicks);
     slice_status_start(dom);
   }
   while (!slice_is_running(dom)) {
   };
   //nonslice_setup_pmp(dom);
+  sbi_printf("%s: next_addr=%#lx: arg: %d %lx %lx\n", __func__, slice_fw_start, hartid, (unsigned long)slice_fdt(dom), (unsigned long)&fw_info[hartid]);
   slice_jump_to_fw(slice_fw_start, hartid, (unsigned long)slice_fdt(dom),
                    (unsigned long)&fw_info[hartid]);
   __builtin_unreachable();

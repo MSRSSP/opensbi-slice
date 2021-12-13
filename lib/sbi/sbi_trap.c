@@ -252,6 +252,7 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 		rc  = sbi_illegal_insn_handler(mtval, regs);
 		msg = "illegal instruction handler failed";
 		break;
+	
 	case CAUSE_MISALIGNED_LOAD:
 		rc = sbi_misaligned_load_handler(mtval, mtval2, mtinst, regs);
 		msg = "misaligned load handler failed";
@@ -266,7 +267,11 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 		rc  = sbi_ecall_handler(regs);
 		msg = "ecall handler failed";
 		break;	
+	case CAUSE_FETCH_ACCESS:
+		sbi_hart_hang();
+		break;
 	default:{
+		
 		if (mcause == CAUSE_USER_ECALL && regs->a7 == SBI_EXT_EXPERIMENTAL_SLICE){
 			sbi_printf("%s: mcause =%lx, a0=%lx, a6=%lx, a7=%lx\n",
 						__func__, mcause, regs->a0, regs->a6, regs->a7);

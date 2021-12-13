@@ -79,9 +79,13 @@ struct slice_config {
   unsigned long slice_start_time[MAX_HART_NUM];
 };
 
-#define report_time() {\
-  sbi_printf("%s: hart %d: #ticks =: %lu\n",\
-  __func__, current_hartid(), csr_read(CSR_MCYCLE) - root.slice_start_time[current_hartid()]);}
+#define report_time(end_time, label) {\
+  sbi_printf("%s: %s: hart %d: #ticks : %lu\n",\
+  __func__, label, current_hartid(), end_time - root.slice_start_time[current_hartid()]);}
+
+#define report_duration(dur, label) {\
+  sbi_printf("%s: %s: hart %d: #ticks : %lu\n",\
+  __func__, label, current_hartid(), dur);}
 
 #define slice_fdt(dom) ((void*)((struct sbi_domain*)dom)->next_arg1)
 
@@ -108,6 +112,6 @@ void nonslice_sbi_init(void);
 void slice_loader(struct sbi_domain *dom, unsigned long fw_src, unsigned long fw_size);
 // A security-critical function to check overlaps among slices.
 int sanitize_slice(struct sbi_domain* new_dom);
-//#define slice_printf sbi_printf
-#define slice_printf(x, ...) {}
+#define slice_printf sbi_printf
+//#define slice_printf(x, ...) {}
 #endif  // __D_H__

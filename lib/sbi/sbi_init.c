@@ -27,6 +27,7 @@
 #include <sbi/sbi_version.h>
 #include <sbi/riscv_io.h>
 #include <slice/slice.h>
+#include <slice/slice_pmp.h>
 
 #define BANNER                                              \
 	"   ____                    _____ ____ _____\n"     \
@@ -225,7 +226,8 @@ static void wake_coldboot_harts(struct sbi_scratch *scratch, u32 hartid)
 }
 
 extern unsigned long init_count_offset;
-
+extern unsigned long loader_to_untrusted_time[5];
+extern unsigned long private_mem_time[5];
 static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 {
 	int rc;
@@ -263,7 +265,6 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 
 	sbi_boot_print_banner(scratch);
-
 	rc = sbi_platform_irqchip_init(plat, TRUE);
 	if (rc) {
 		sbi_printf("%s: platform irqchip init failed (error %d)\n",
@@ -282,7 +283,6 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_printf("%s: tlb init failed (error %d)\n", __func__, rc);
 		sbi_hart_hang();
 	}
-
 	rc = sbi_timer_init(scratch, TRUE);
 	if (rc) {
 		sbi_printf("%s: timer init failed (error %d)\n", __func__, rc);
@@ -348,8 +348,11 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	(*init_count)++;
 
 	sbi_hsm_prepare_next_jump(scratch, hartid);
-	report_time()
-	slice_print_fdt(slice_fdt(sbi_domain_thishart_ptr()));
+	report_time(csr_read(CSR_MCYCLE), "loader -> sbi_init end");
+	report_time(loader_to_untrusted_time[current_hartid()], "loader->untrusted start");
+	report_duration(private_mem_time[current_hartid()], "private_mem copy");
+	report_time(startInitTicks[current_hartid()], "loader -> sbi_init start");
+	//slice_print_fdt(slice_fdt(sbi_domain_thishart_ptr()));
 	sbi_hart_switch_mode(hartid, scratch->next_arg1, scratch->next_addr,
 			     scratch->next_mode, FALSE);
 }
@@ -427,7 +430,10 @@ static void init_warm_startup(struct sbi_scratch *scratch, u32 hartid)
 
 	init_count = sbi_scratch_offset_ptr(scratch, init_count_offset);
 	(*init_count)++;
-	report_time()
+	report_time(csr_read(CSR_MCYCLE), "loader -> sbi_init end");
+	report_time(loader_to_untrusted_time[current_hartid()], "loader->untrusted start");
+	report_duration(private_mem_time[current_hartid()], "private memcopy");
+	report_time(startInitTicks[current_hartid()], "loader -> sbi_init start");
 	sbi_hsm_prepare_next_jump(scratch, hartid);
 }
 
@@ -532,10 +538,9 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 		init_warmboot(scratch, hartid);
 }
 
+unsigned long sbi_enter_time[MAX_HART_NUM];
 void __noreturn sbi_slice_init(struct sbi_scratch *scratch, bool coldboot)
 {
-	report_time()
-	sbi_init_state= 0;
 	startInitTicks[current_hartid()] = csr_read(CSR_MCYCLE);
 	bool next_mode_supported	= FALSE;
 	u32 hartid			= current_hartid();
@@ -544,7 +549,6 @@ void __noreturn sbi_slice_init(struct sbi_scratch *scratch, bool coldboot)
 	if ((SBI_HARTMASK_MAX_BITS <= hartid) ||
 	    sbi_platform_hart_invalid(plat, hartid))
 		sbi_hart_hang();
-	sbi_init_state= 1;
 	switch (scratch->next_mode) {
 	case PRV_M:
 		next_mode_supported = TRUE;
