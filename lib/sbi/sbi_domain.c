@@ -478,7 +478,7 @@ int sbi_domain_root_add_memregion(const struct sbi_domain_memregion *reg)
 
 	/* Sanity checks */
 	if (!reg || domain_finalized ||
-	    (root.regions != root_memregs) ||
+	   // (root.regions != root_memregs) ||
 	    (ROOT_REGION_MAX <= root_memregs_count))
 		return SBI_EINVAL;
 

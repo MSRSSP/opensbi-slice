@@ -10,6 +10,7 @@
 #include <slice/slice_err.h>
 #include <slice/slice_mgr.h>
 
+#define CONFIG_SLICE_SW_RESET 1
 #if defined(CONFIG_SLICE_SW_RESET) && CONFIG_SLICE_SW_RESET
 #define SLICE_PMP_L 0x0
 #else
@@ -18,6 +19,7 @@
 
 // don't allow OpenSBI to play with PMPs
 int sbi_hart_pmp_configure(struct sbi_scratch *pScratch) { return 0; }
+
 static int _pmp_regions();
 
 static int detect_region_covered_by_pmp(uintptr_t addr, uintptr_t size) {
@@ -232,18 +234,19 @@ static int slice_setup_pmp_for_ipi_data(int pmp_index0, void *dom_ptr) {
   return pmp_index;
 }
 
-extern struct sbi_ipi_device clint_ipi;
-#define MPFS_CLINT_ADDR 0x2000000
-#define IPI_REG_WIDTH 4
+#define MPFS_CLINT_ADDR 0x2000000UL
+#define IPI_REG_WIDTH 4UL
+
+unsigned long ipi_addr(unsigned hartid){
+  return 0x2000000UL + hartid * 4UL;
+}
 static int slice_setup_pmp_for_ipi(int pmp_index, void *dom_ptr) {
-  slice_printf("hart %d: %s\n", current_hartid(), __func__);
   const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
   unsigned hartid = 0, prev_assigned_hartid = 0;
   unsigned long addr = 0, size = 0;
-  sbi_hartmask_for_each_hart(hartid, dom->possible_harts) {
-    slice_printf("hart %d is assigned to dom %s\n", hartid, dom->name);
+  sbi_hartmask_for_each_hart(hartid, &dom->assigned_harts) {
     if (!addr) {
-      addr = MPFS_CLINT_ADDR + hartid * IPI_REG_WIDTH;
+      addr = ipi_addr(hartid);
       size += 4;
     } else if ((hartid - prev_assigned_hartid) == 1) {
       size += 4;
@@ -310,12 +313,12 @@ int slice_setup_pmp(void *dom_ptr) {
 
   // Manually added rule to disallow access to original sbi.
   // Each slice only uses its own sbi copy.
-  pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L, 0x8000000,
+  /*pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L, 0x8000000,
                                     1UL << 24, false);
   if (pmp_index < 0) {
     sbi_hart_hang();
     return pmp_index;
-  }
+  }*/
 
   pmp_index = slice_setup_pmp_for_ipi(pmp_index, dom_ptr);
   // Set up allowed domain memory regions.
@@ -339,8 +342,7 @@ int slice_setup_pmp(void *dom_ptr) {
       return pmp_index;
     }
   }
-  pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L|PMP_R|PMP_W|PMP_X, dom->slice_mem_start,
-                                      dom->slice_mem_size, false);
+  
   // Do not allow access to other regions;
   pmp_index = slice_set_pmp_for_mem(pmp_index, SLICE_PMP_L, 0, -1UL, false);
   if (pmp_index < 0) {
@@ -364,6 +366,9 @@ atomic_t slice_0_pmp_status = ATOMIC_INITIALIZER(0);
 #define CONFIG_SLICE0_NON_SECURE_MEM_SIZE 0x8000000
 int slice0_setup_pmp(void) {
   // Deny rule.
+  if(current_hartid() != 0){
+    return 0;
+  }
   int slice0_pmp_status = atomic_add_return(&slice_0_pmp_status, 1);
   if (slice0_pmp_status != 1) {
     return 0;

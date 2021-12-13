@@ -27,9 +27,14 @@ static void load_next_stage(const void *dom_ptr) {
   }
 }
 
+unsigned long private_mem_time[5] ={0};
+unsigned long loader_to_untrusted_time[5];
+
 static void slice_copy_to_private_mem(struct sbi_domain *dom) {
+  unsigned long startTicks = csr_read(CSR_MCYCLE);
   slice_copy_fdt(dom);
   load_next_stage(dom);
+  private_mem_time[current_hartid()] = csr_read(CSR_MCYCLE) - startTicks;
 }
 
 // extern struct sbi_domain * root;
@@ -40,20 +45,21 @@ static struct sbi_hartmask root_hmask;
 #define ROOT_REGION_MAX	16
 //static  struct sbi_domain_memregion private_memregs[ROOT_REGION_MAX + 1] = { 0 };
 
-
+struct sbi_domain_memregion private_memregs[ROOT_REGION_MAX + 1] = { 0 };
 static void __noreturn slice_loader_finish_guest(struct sbi_scratch *private_scratch, struct sbi_domain *shared_dom) {
   struct sbi_domain *dom, private_dom;
-  struct sbi_domain_memregion* root_memregs;
+  //struct sbi_domain_memregion* root_memregs;
   struct sbi_domain_memregion local_memregs[ROOT_REGION_MAX + 1] = { 0 };
   struct sbi_hartmask local_hmask;
   bool is_boot_hartid = (shared_dom->boot_hartid == current_hartid());
+  sbi_console_init(private_scratch);
   if(is_boot_hartid){
     dom = &root;
-    root_memregs = dom->regions;
+    //root_memregs = dom->regions;
     sbi_memcpy(dom, shared_dom, sizeof(*dom));
     sbi_memcpy(&root_hmask, shared_dom->possible_harts, sizeof(root_hmask));
-    sbi_memcpy(root_memregs, shared_dom->regions, sizeof(struct sbi_domain_memregion)*ROOT_REGION_MAX);
-    dom->regions = root_memregs;
+    sbi_memcpy(private_memregs, shared_dom->regions, sizeof(struct sbi_domain_memregion)*ROOT_REGION_MAX);
+    dom->regions = private_memregs;
     dom->possible_harts = &root_hmask;
     slice_copy_to_private_mem(dom);
     __smp_store_release(&slice_loader_state, 1);
@@ -65,9 +71,9 @@ static void __noreturn slice_loader_finish_guest(struct sbi_scratch *private_scr
     dom->possible_harts = &local_hmask;
     dom->regions = local_memregs;
   }
+  loader_to_untrusted_time[current_hartid()] = csr_read(CSR_MCYCLE);
   slice_setup_pmp(dom);
   //nonslice_setup_pmp();
-
   if(is_boot_hartid){
     slice_config_domain_fdt(dom);
   }

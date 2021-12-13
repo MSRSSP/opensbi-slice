@@ -392,11 +392,13 @@ int sbi_dprintf(const char *format, ...)
 	va_list args;
 	int retval = 0;
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
-
+	while(__smp_load_acquire(&console_out_lock)){}
+	__smp_store_release(&console_out_lock, 1);
 	va_start(args, format);
 	if (scratch->options & SBI_SCRATCH_DEBUG_PRINTS)
 		retval = print(NULL, NULL, format, args);
 	va_end(args);
+	__smp_store_release(&console_out_lock, 0);
 
 	return retval;
 }
