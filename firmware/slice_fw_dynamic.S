@@ -148,6 +148,8 @@ slice_cfg_addr:
 	REG_L	a0, (a0)
 	ret
 
+.section .data
+       .align 4
 _dynamic_next_arg1:
 	RISCV_PTR 0x0
 _dynamic_next_addr:
