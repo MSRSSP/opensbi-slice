@@ -33,10 +33,12 @@ static inline mss_uart_instance_t *get_uart_instance(int hartid)
         break;
     case HSS_HART_U54_1:
     case HSS_HART_U54_2: 
+        pUart = &g_mss_uart2_lo;
+        break;
     case HSS_HART_U54_3:
     case HSS_HART_U54_4:
-	pUart = &g_mss_uart1_lo;
-	break;
+	    pUart = &g_mss_uart1_lo;
+	    break;
     }
 
     return pUart;

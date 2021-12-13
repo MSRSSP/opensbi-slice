@@ -202,7 +202,7 @@ int slice_create_full(struct slice_options *slice_options) {
   if (sbi_platform_ops(plat)->slice_init_mem_region) {
     sbi_platform_ops(plat)->slice_init_mem_region(dom);
   }
-  dump_slice_config(dom);
+ // dump_slice_config(dom);
   err = sanitize_slice(dom);
   if (err) {
     sbi_printf("%s: Cannot create an slice. err = %d\n", __func__, err);

@@ -112,6 +112,6 @@ void nonslice_sbi_init(void);
 void slice_loader(struct sbi_domain *dom, unsigned long fw_src, unsigned long fw_size);
 // A security-critical function to check overlaps among slices.
 int sanitize_slice(struct sbi_domain* new_dom);
-#define slice_printf sbi_printf
-//#define slice_printf(x, ...) {}
+//#define slice_printf sbi_printf
+#define slice_printf(x, ...) {}
 #endif  // __D_H__
