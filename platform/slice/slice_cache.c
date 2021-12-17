@@ -1,6 +1,7 @@
 #include <sbi/sbi_domain.h>
 #include <assert.h>
 #include <sbi/sbi_types.h>
+#include <sbi/sbi_console.h>
 
 #include "config.h"
 #include "hss_types.h"
@@ -16,6 +17,7 @@
 #define PRINT_CACHE_MASK_BY_HART(hartid) {\
         sbi_printf("hartid= "#hartid": %lx %lx\n",CACHE_CTRL->WAY_MASK_U54_##hartid##_ICACHE, CACHE_CTRL->WAY_MASK_U54_##hartid##_DCACHE); \
         }
+
 void slice_process_cache_mask(int dom_index, unsigned long value){
 	struct sbi_domain* dom = slice_from_index(dom_index);
   sbi_printf("%s(%d, %lx)\n", __func__, dom_index, value);

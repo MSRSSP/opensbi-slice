@@ -14,7 +14,9 @@
 #include <slice/slice_err.h>
 #include <slice/slice_mgr.h>
 #include <slice/slice_pmp.h>
+void __gcov_exit(){
 
+}
 #if 1
 // In PolarFire, only selected memory regions support atomic operations.
 #define atomic_cmpxchg exchange

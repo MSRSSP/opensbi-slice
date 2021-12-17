@@ -10,7 +10,7 @@
 # Compiler flags
 FW_TEXT_START=0x80000000
 platform-cppflags-y =
-platform-cflags-y += -DCONFIG_PLATFORM_MPFS=1
+platform-cflags-y += -fno-strict-aliasing -DCONFIG_PLATFORM_MPFS=1
 platform-cflags-y += -I$(SLICE_HSS_DIR) 
 platform-cflags-y += -I$(SLICE_HSS_DIR)/include/ 
 platform-cflags-y += -I$(SLICE_HSS_DIR)/services/opensbi/ 
@@ -20,6 +20,7 @@ platform-cflags-y += -I$(SLICE_HSS_DIR)/boards/slice/fpga_design_config/
 platform-cflags-y += -I$(SLICE_HSS_DIR)/boards/slice/
 platform-cflags-y += -I$(SLICE_HSS_DIR)/modules/ssmb/ipi/
 platform-cflags-y += -Iinclude/sbi/
+platform-cflags-y += -I$(SLICE_HSS_DIR)/baremetal/polarfire-soc-bare-metal-library/src/platform/mpfs_hal/
 platform-cflags-y += -Os -Wl,--gc-sections -fomit-frame-pointer -fno-strict-aliasing 
 platform-asflags-y =-fomit-frame-pointer -fno-strict-aliasing 
 platform-ldflags-y = -fomit-frame-pointer -fno-strict-aliasing 

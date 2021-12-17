@@ -30,7 +30,7 @@ static void zero_slice_memory(void *dom_ptr) {
   if (dom->slice_mem_start) {
     slice_printf("Zero Slice Mem %lx\n", dom->slice_mem_start);
     slice_printf("Zero Slice Mem size %lx.\n", dom->slice_mem_size);
-    // sbi_memset((void *)dom->slice_mem_start, 0, dom->slice_mem_size);
+    sbi_memset((void *)dom->slice_mem_start, 0, dom->slice_mem_size);
   }
   sbi_printf("%s: hart %d: #ticks = %lu\n", __func__, current_hartid(),
              csr_read(CSR_MCYCLE) - startTicks);

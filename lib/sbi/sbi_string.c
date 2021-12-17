@@ -33,6 +33,10 @@ int sbi_strncmp(const char *a, const char *b, size_t count)
 	for (; count > 0 && *a == *b && *a != '\0'; a++, b++, count--)
 		;
 
+	/* No difference till the end */
+	if (!count)
+		return 0;
+
 	return *a - *b;
 }
 
@@ -118,6 +122,9 @@ void *sbi_memset(void *s, int c, size_t count)
 	return s;
 }
 
+void *memset(void *s, int c, size_t count) \
+__attribute__((weak, alias("sbi_memset")));
+
 void *sbi_memcpy(void *dest, const void *src, size_t count)
 {
 	char *temp1	  = dest;
@@ -130,6 +137,9 @@ void *sbi_memcpy(void *dest, const void *src, size_t count)
 
 	return dest;
 }
+
+void *memcpy(void *dest, const void *src, size_t count) \
+__attribute__((weak, alias("sbi_memcpy")));
 
 void *sbi_memmove(void *dest, const void *src, size_t count)
 {

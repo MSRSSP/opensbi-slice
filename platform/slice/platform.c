@@ -55,7 +55,7 @@
 #include <sbi_utils/serial/uart8250.h>
 #include <sbi_utils/sys/clint.h>
 #include <slice/slice_mgr.h>
-#include "baremetal/polarfire-soc-bare-metal-library/src/platform/mpfs_hal/common/mss_hart_ints.h"
+
 //#include "opensbi_service.h"
 #include "cache.h"
 #define MPFS_HART_COUNT 5
@@ -96,17 +96,6 @@
 
 #define DOMAIN_REGION_MAX_COUNT 2
 
-/*------------------------------------------------------------------------------
- * Enable particular local interrupt
- */
-void __enable_local_irq(uint8_t local_interrupt)
-{
-    if((local_interrupt > (int8_t)0) && (local_interrupt <= LOCAL_INT_MAX))
-    {
-        csr_write_num(MSTATUS_MIE, (0x1LLU << (int8_t)(local_interrupt + 16U)));  /* mie Register- Machine Interrupt Enable Register */
-    }
-}
-
 #define MPFS_HARITD_DISABLED ~(MPFS_ENABLED_HART_MASK)
 
 struct plic_data plicInfo = {.addr = MPFS_PLIC_ADDR,
@@ -120,9 +109,9 @@ struct clint_data clintInfo = {.addr = MPFS_CLINT_ADDR,
 extern unsigned long STACK_SIZE_PER_HART;
 
 static void mpfs_modify_dt(void *fdt) {
-  fdt_cpu_fixup(fdt, sbi_domain_thishart_ptr());
+  //fdt_cpu_fixup(fdt, sbi_domain_thishart_ptr());
 
-  fdt_fixups(fdt, sbi_domain_thishart_ptr());
+  //fdt_fixups(fdt, sbi_domain_thishart_ptr());
 
   // fdt_reserved_memory_nomap_fixup(fdt); // not needed for PolarFire SoC
 }
@@ -169,9 +158,10 @@ static struct sbi_console_device mpfs_console = {
     .console_putc = mpfs_console_putc,
     .console_getc = mpfs_console_getc};
 
-extern void uart_init(void);
+extern void HSS_UARTInit(void);
+
 static int mpfs_console_init(void) {
-  uart_init();
+  HSS_UARTInit();
   sbi_console_set_device(&mpfs_console);
   console_initialized = true;
   return 0;

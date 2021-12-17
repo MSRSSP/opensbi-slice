@@ -44,59 +44,28 @@ struct SliceIPIData *slice_ipi_slice_data(u32 src, u32 dst) {
 }
 
 static void __attribute__((noreturn))
-slice_jump(unsigned long next_addr, unsigned long next_mode) {
+slice_jump_to_sw_reset(unsigned long next_addr) {
 #if __riscv_xlen == 32
   unsigned long val, valH;
 #else
   unsigned long val;
 #endif
-  sbi_printf("%s(): next_addr=%#lx next_mode=%#lx\n", __func__, next_addr,
-             next_mode);
-
-  switch (next_mode) {
-    case PRV_M:
-      break;
-    case PRV_S:
-    case PRV_U:
-    default:
-      sbi_hart_hang();
-  }
-
+  slice_printf("%s(): next_addr=%#lx\n", __func__, next_addr);
   val = csr_read(CSR_MSTATUS);
-  val = INSERT_FIELD(val, MSTATUS_MPP, next_mode);
+  val = INSERT_FIELD(val, MSTATUS_MPP, PRV_M);
   val = INSERT_FIELD(val, MSTATUS_MPIE, 0);
-#if __riscv_xlen == 32
-  if (misa_extension('H')) {
-    valH = csr_read(CSR_MSTATUSH);
-    valH = INSERT_FIELD(valH, MSTATUSH_MPV, 0);
-    csr_write(CSR_MSTATUSH, valH);
-  }
-#else
-  if (misa_extension('H')) {
-    val = INSERT_FIELD(val, MSTATUS_MPV, 0);
-  }
-#endif
   // Disable all interrupts;
   csr_write(CSR_MIE, 0);
   csr_write(CSR_MSTATUS, val);
   csr_write(CSR_MEPC, next_addr);
 
-  if (next_mode == PRV_S) {
-    csr_write(CSR_STVEC, next_addr);
-    csr_write(CSR_SSCRATCH, 0);
-    csr_write(CSR_SIE, 0);
-    csr_write(CSR_SATP, 0);
-  } else if (next_mode == PRV_U) {
-    if (misa_extension('N')) {
-      csr_write(CSR_UTVEC, next_addr);
-      csr_write(CSR_USCRATCH, 0);
-      csr_write(CSR_UIE, 0);
-    }
-  }
   sbi_hsm_hart_stop(sbi_scratch_thishart_ptr(), false);
   register unsigned long a0 asm("a0") = 0;
   register unsigned long a1 asm("a1") = 0;
-  __asm__ __volatile__("mret" : : "r"(a0), "r"(a1));
+  __asm__ __volatile__(
+     "jr %0\n" 
+     :: "r"(next_addr), "r"(a0), "r"(a1)
+     );
   __builtin_unreachable();
 }
 
@@ -110,7 +79,7 @@ static void sbi_ipi_process_slice_op(struct sbi_scratch *scratch) {
         slice_printf("%s: hart %d\n", __func__, dst_hart);
         slice_pmp_init();
         slice_pmp_dump();
-        slice_jump(0x8000000, PRV_M);
+        slice_jump_to_sw_reset(0x8000000);
         break;
       // DEBUG-purpose
       case SLICE_IPI_PMP_DEBUG:

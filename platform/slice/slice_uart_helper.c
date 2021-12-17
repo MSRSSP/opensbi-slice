@@ -17,8 +17,11 @@
 #include "drivers/mss_uart/mss_uart.h"
 #include <string.h>
 #include <stdint.h>
+#include <sbi/riscv_asm.h>
 
 #include "uart_helper.h"
+
+unsigned long hss_start_time[5] ={0};
 
 static inline mss_uart_instance_t *get_uart_instance(int hartid)
 {
@@ -197,7 +200,8 @@ bool uart_getchar(uint8_t *pbuf, int32_t timeout_sec, bool do_sec_tick)
     return result;
 }
 
-void uart_init(void){
+bool HSS_UARTInit(void){
+    hss_start_time[0] = csr_read(CSR_MCYCLE);
     MSS_UART_init(&g_mss_uart0_lo, MSS_UART_115200_BAUD,
         MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
 
@@ -214,4 +218,5 @@ void uart_init(void){
 
     MSS_UART_init(&g_mss_uart4_lo, MSS_UART_115200_BAUD,
         MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
+    return true;
 }

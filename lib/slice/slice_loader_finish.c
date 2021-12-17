@@ -12,7 +12,7 @@
 #include <slice/slice_fw.h>
 #include <slice/slice_mgr.h>
 #include <slice/slice_pmp.h>
-
+//#include "hss_memcpy_via_pdma.h"
 static void load_next_stage(const void *dom_ptr) {
   const struct sbi_domain *dom = (struct sbi_domain *)dom_ptr;
   void *dst = (void *)dom->next_addr;
@@ -23,6 +23,7 @@ static void load_next_stage(const void *dom_ptr) {
   if (src != dst) {
     slice_printf("%s: hart %d: %lx-> %lx, %x\n", __func__, current_hartid(),
                  dom->next_boot_src, dom->next_addr, dom->next_boot_size);
+    //memcpy_via_pdma(dst, src, dom->next_boot_size);
     sbi_memcpy(dst, src, dom->next_boot_size);
   }
 }
@@ -32,8 +33,10 @@ unsigned long loader_to_untrusted_time[5];
 
 static void slice_copy_to_private_mem(struct sbi_domain *dom) {
   unsigned long startTicks = csr_read(CSR_MCYCLE);
+  mb();
   slice_copy_fdt(dom);
   load_next_stage(dom);
+  mb();
   private_mem_time[current_hartid()] = csr_read(CSR_MCYCLE) - startTicks;
 }
 
