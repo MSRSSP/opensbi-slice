@@ -14,13 +14,13 @@
 #include <string.h>
 
 #include "config.h"
-#include "hss_types.h"
+#include "harts.h"
 #include "mss_uart.h"
 
 //#include boards/xxx/fpga_design_config/clocks/hw_mss_clks.h
 #include "clocks/hw_mss_clks.h"
-#include "uart_helper.h"
-
+//#include "uart_helper.h"
+#define UART_HELPER_MAX_GETLINE 100u
 #define TICKS_PER_SEC ((unsigned long long)LIBERO_SETTING_MSS_RTC_TOGGLE_CLK)
 
 uint64_t get_time(void) { return csr_read(CSR_MCYCLE); }
@@ -77,8 +77,8 @@ ssize_t uart_getline(char **pBuffer, size_t *pBufLen) {
   ssize_t result = 0;
   bool finished = false;
   static char
-      myBuffer[HSS_UART_HELPER_MAX_GETLINE];  // static to be stack friendly
-  const size_t bufferLen = ARRAY_SIZE(myBuffer);
+      myBuffer[UART_HELPER_MAX_GETLINE];  // static to be stack friendly
+  const size_t bufferLen = array_size(myBuffer);
 
   memset(myBuffer, 0, bufferLen);
 
@@ -182,7 +182,7 @@ bool uart_getchar(uint8_t *pbuf, int32_t timeout_sec, bool do_sec_tick) {
         result = true;
         break;
       } else {
-        slice_debug_printf(SLICE_LOG_ERR, "UART error");
+        slice_log_printf(SLICE_LOG_ERR, "UART error");
       }
     }
 

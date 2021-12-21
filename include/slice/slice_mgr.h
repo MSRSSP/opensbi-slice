@@ -59,4 +59,8 @@ void dump_slices_config(void);
 // Test only; 
 // TBD: remove in production.
 void slice_ipi_test(int dom_index);
+
+/* Slice-0 setter and getter */
+unsigned int slice_host_hartid();
+int register_host_hartid(unsigned int hartid);
 #endif // __SLICE_MGR_H

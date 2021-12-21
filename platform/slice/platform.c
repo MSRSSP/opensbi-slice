@@ -35,7 +35,7 @@
 #include <sbi/sbi_types.h>
 
 #include "config.h"
-#include "hss_types.h"
+#include "harts.h"
 #define false FALSE
 #define true TRUE
 
@@ -357,7 +357,7 @@ static int _mpfs_domains_register_boot_hart(char *pName, u32 hartMask,
                                             unsigned long mem_size) {
   hart_table[boot_hartid].owner_hartid = boot_hartid;
   sbi_memcpy(hart_table[boot_hartid].name, pName,
-         ARRAY_SIZE(hart_table[boot_hartid].name) - 1);
+         array_size(hart_table[boot_hartid].name) - 1);
   hart_table[boot_hartid].mem_size = mem_size;
   hart_table[boot_hartid].mem_start = mem_start;
   sbi_hartmask_clear_all(&hart_table[boot_hartid].hartMask);
@@ -457,7 +457,7 @@ static int mpfs_domains_init(void) {
 
         // TODO: replace sbi_memcpy with something like strlcpy
         sbi_memcpy(pDom->name, hart_table[boot_hartid].name,
-               ARRAY_SIZE(dom_table[0].name) - 1);
+               array_size(dom_table[0].name) - 1);
         struct slice_options options = {hart_table[boot_hartid].hartMask,
                                         hart_table[boot_hartid].mem_start,
                                         hart_table[boot_hartid].mem_size,

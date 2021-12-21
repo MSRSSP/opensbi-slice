@@ -11,13 +11,15 @@
 #include "mss_uart.h"
 #include "mss_uart_regs.h"
 #include "mss_plic.h"
-#include "mss_util.h"
+#include "mss_hart_ints.h"
+
 #include "fpga_design_config/fpga_design_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+extern void __enable_local_irq(uint8_t local_interrupt);
 #define MSS_UART0_LO_BASE           (MSS_UART_TypeDef*)0x20000000UL
 #define MSS_UART1_LO_BASE           (MSS_UART_TypeDef*)0x20100000UL
 #define MSS_UART2_LO_BASE           (MSS_UART_TypeDef*)0x20102000UL
@@ -238,8 +240,8 @@ MSS_UART_polled_tx
     uint8_t status;
     uint32_t temp_tx_size = tx_size;
 
-    ASSERT(pbuff != ( (uint8_t*)0));
-    ASSERT(tx_size > 0u);
+    assert(pbuff != ( (uint8_t*)0));
+    assert(tx_size > 0u);
 
     if ((pbuff != ((uint8_t*)0)) && (temp_tx_size > 0u))
     {
@@ -293,7 +295,7 @@ MSS_UART_polled_tx_string
     uint8_t data_byte;
     uint8_t status;
 
-    ASSERT(p_sz_string != ((uint8_t*)0));
+    assert(p_sz_string != ((uint8_t*)0));
 
     if (p_sz_string != ((uint8_t*)0))
     {
@@ -342,8 +344,8 @@ MSS_UART_irq_tx
     uint32_t tx_size
 )
 {
-    ASSERT(pbuff != ((uint8_t*)0));
-    ASSERT(tx_size > 0u);
+    assert(pbuff != ((uint8_t*)0));
+    assert(tx_size > 0u);
 
     if ((tx_size > 0u) && (pbuff != ((uint8_t*)0)))
     {
@@ -400,8 +402,8 @@ MSS_UART_get_rx
     size_t rx_size = 0u;
     uint8_t status = 0u;
 
-    ASSERT(rx_buff != ((uint8_t*)0));
-    ASSERT(buff_size > 0u);
+    assert(rx_buff != ((uint8_t*)0));
+    assert(buff_size > 0u);
 
     if ((rx_buff != (uint8_t*)0) && (buff_size > 0u))
     {
@@ -430,7 +432,7 @@ MSS_UART_enable_irq
     mss_uart_irq_t irq_mask
 )
 {
-    ASSERT(MSS_UART_INVALID_IRQ > irq_mask);
+    assert(MSS_UART_INVALID_IRQ > irq_mask);
 
     enable_irq(this_uart);
 
@@ -501,8 +503,8 @@ MSS_UART_set_rx_handler
     mss_uart_rx_trig_level_t    trigger_level
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER );
-    ASSERT(trigger_level < MSS_UART_FIFO_INVALID_TRIG_LEVEL);
+    assert(handler != INVALID_IRQ_HANDLER );
+    assert(trigger_level < MSS_UART_FIFO_INVALID_TRIG_LEVEL);
 
     if ((handler != INVALID_IRQ_HANDLER) &&
        (trigger_level < MSS_UART_FIFO_INVALID_TRIG_LEVEL))
@@ -531,7 +533,7 @@ MSS_UART_set_loopback
     mss_uart_loopback_t     loopback
 )
 {
-    ASSERT(MSS_UART_INVALID_LOOPBACK > loopback);
+    assert(MSS_UART_INVALID_LOOPBACK > loopback);
 
     if (MSS_UART_INVALID_LOOPBACK > loopback)
     {
@@ -566,7 +568,7 @@ MSS_UART_set_loopback
             case MSS_UART_INVALID_LOOPBACK:
                 /* Fall through to default. */
             default:
-                ASSERT(0);
+                assert(0);
             break;
         }
     }
@@ -715,7 +717,7 @@ MSS_UART_set_rxstatus_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -738,7 +740,7 @@ MSS_UART_set_tx_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -764,7 +766,7 @@ MSS_UART_set_modemstatus_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -790,8 +792,8 @@ MSS_UART_fill_tx_fifo
     uint8_t status = 0u;
     uint32_t size_sent = 0u;
 
-    ASSERT(tx_buffer != ( (uint8_t*)0));
-    ASSERT(tx_size > 0);
+    assert(tx_buffer != ( (uint8_t*)0));
+    assert(tx_size > 0);
 
     /* Fill the UART's Tx FIFO until the FIFO is full or the complete input
      * buffer has been written. */
@@ -939,7 +941,7 @@ MSS_UART_set_pidpei_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -961,7 +963,7 @@ MSS_UART_set_linbreak_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -983,7 +985,7 @@ MSS_UART_set_linsync_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -1005,7 +1007,7 @@ MSS_UART_set_nack_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -1027,7 +1029,7 @@ MSS_UART_set_rx_timeout_handler
     mss_uart_irq_handler_t handler
 )
 {
-    ASSERT(handler != INVALID_IRQ_HANDLER);
+    assert(handler != INVALID_IRQ_HANDLER);
 
     if (handler != INVALID_IRQ_HANDLER)
     {
@@ -1075,7 +1077,7 @@ MSS_UART_set_rx_endian
     mss_uart_endian_t endian
 )
 {
-    ASSERT(MSS_UART_INVALID_ENDIAN > endian);
+    assert(MSS_UART_INVALID_ENDIAN > endian);
 
     if (MSS_UART_INVALID_ENDIAN > endian)
     {
@@ -1095,7 +1097,7 @@ MSS_UART_set_tx_endian
     mss_uart_endian_t endian
 )
 {
-    ASSERT(MSS_UART_INVALID_ENDIAN > endian);
+    assert(MSS_UART_INVALID_ENDIAN > endian);
 
     if (MSS_UART_INVALID_ENDIAN > endian)
     {
@@ -1115,7 +1117,7 @@ MSS_UART_set_filter_length
     mss_uart_filter_length_t length
 )
 {
-    ASSERT(MSS_UART_INVALID_FILTER_LENGTH > length);
+    assert(MSS_UART_INVALID_FILTER_LENGTH > length);
 
     if (MSS_UART_INVALID_FILTER_LENGTH > length)
     {
@@ -1262,7 +1264,7 @@ MSS_UART_set_ready_mode
     mss_uart_ready_mode_t mode
 )
 {
-    ASSERT(MSS_UART_INVALID_READY_MODE > mode);
+    assert(MSS_UART_INVALID_READY_MODE > mode);
 
     if (MSS_UART_INVALID_READY_MODE > mode )
     {
@@ -1282,7 +1284,7 @@ MSS_UART_set_usart_mode
     mss_uart_usart_mode_t mode
 )
 {
-    ASSERT(MSS_UART_INVALID_SYNC_MODE > mode);
+    assert(MSS_UART_INVALID_SYNC_MODE > mode);
 
     if (MSS_UART_INVALID_SYNC_MODE > mode)
     {
@@ -1389,7 +1391,7 @@ static void global_init
     }
     else
     {
-        ASSERT(0); /*Comment to avoid LDRA warning*/
+        assert(0); /*Comment to avoid LDRA warning*/
     }
 
     /* disable interrupts */
@@ -1508,8 +1510,8 @@ config_baud_divisors
     fractional_baud_value += (baud_value_by_128 - (baud_value * 128u))
                              - (fractional_baud_value * 2u);
 
-    /* Assert if integer baud value fits in 16-bit. */
-    ASSERT(baud_value <= UINT16_MAX);
+    /* assert if integer baud value fits in 16-bit. */
+    assert(baud_value <= UINT16_MAX);
 
     if (baud_value <= (uint32_t)UINT16_MAX)
     {
@@ -1533,7 +1535,7 @@ config_baud_divisors
             this_uart->hw_reg->MM0 |= EFBR_MASK;
 
             /* Load the fractional baud rate register */
-            ASSERT(fractional_baud_value <= (uint32_t)UINT8_MAX);
+            assert(fractional_baud_value <= (uint32_t)UINT8_MAX);
             this_uart->hw_reg->DFR = (uint8_t)fractional_baud_value;
         }
         else
@@ -1581,7 +1583,7 @@ uart_isr
     {
         case IIRF_MODEM_STATUS:  /* Modem status interrupt */
         {
-            ASSERT(NULL_HANDLER != this_uart->modemsts_handler);
+            assert(NULL_HANDLER != this_uart->modemsts_handler);
             if (NULL_HANDLER != this_uart->modemsts_handler)
             {
                (*(this_uart->modemsts_handler))(this_uart);
@@ -1591,7 +1593,7 @@ uart_isr
 
         case IIRF_THRE: /* Transmitter Holding Register Empty */
         {
-            ASSERT(NULL_HANDLER != this_uart->tx_handler);
+            assert(NULL_HANDLER != this_uart->tx_handler);
             if (NULL_HANDLER != this_uart->tx_handler)
             {
                 (*(this_uart->tx_handler))(this_uart);
@@ -1602,7 +1604,7 @@ uart_isr
         case IIRF_RX_DATA:      /* Received Data Available */
         case IIRF_DATA_TIMEOUT: /* Received Data Timed-out */
         {
-            ASSERT(NULL_HANDLER != this_uart->rx_handler);
+            assert(NULL_HANDLER != this_uart->rx_handler);
             if (NULL_HANDLER != this_uart->rx_handler)
             {
                 (*(this_uart->rx_handler))(this_uart);
@@ -1612,7 +1614,7 @@ uart_isr
 
         case IIRF_RX_LINE_STATUS:  /* Line Status Interrupt */
         {
-            ASSERT(NULL_HANDLER != this_uart->linests_handler);
+            assert(NULL_HANDLER != this_uart->linests_handler);
             if (NULL_HANDLER != this_uart->linests_handler)
             {
                (*(this_uart->linests_handler))(this_uart);
@@ -1627,7 +1629,7 @@ uart_isr
             /* Receiver time-out interrupt */
             if (this_uart->hw_reg->IIM & ERTOI_MASK)
             {
-                ASSERT(NULL_HANDLER != this_uart->rto_handler);
+                assert(NULL_HANDLER != this_uart->rto_handler);
 
                 if (NULL_HANDLER != this_uart->rto_handler)
                 {
@@ -1638,7 +1640,7 @@ uart_isr
             /* NACK interrupt */
             if (this_uart->hw_reg->IIM &ENACKI)
             {
-                ASSERT(NULL_HANDLER != this_uart->nack_handler);
+                assert(NULL_HANDLER != this_uart->nack_handler);
 
                 if (NULL_HANDLER != this_uart->nack_handler)
                 {
@@ -1649,7 +1651,7 @@ uart_isr
             /* PID parity error interrupt */
             if (this_uart->hw_reg->IIM & EPID_PEI)
             {
-                ASSERT(NULL_HANDLER != this_uart->pid_pei_handler);
+                assert(NULL_HANDLER != this_uart->pid_pei_handler);
 
                 if (NULL_HANDLER != this_uart->pid_pei_handler)
                 {
@@ -1660,7 +1662,7 @@ uart_isr
             /* LIN break detection interrupt */
             if (this_uart->hw_reg->IIM & ELINBI)
             {
-                ASSERT(NULL_HANDLER != this_uart->break_handler);
+                assert(NULL_HANDLER != this_uart->break_handler);
 
                 if (NULL_HANDLER != this_uart->break_handler)
                 {
@@ -1671,7 +1673,7 @@ uart_isr
             /* LIN Sync detection interrupt */
             if (this_uart->hw_reg->IIM & ELINSI)
             {
-                ASSERT(NULL_HANDLER != this_uart->sync_handler);
+                assert(NULL_HANDLER != this_uart->sync_handler);
 
                 if (NULL_HANDLER != this_uart->sync_handler)
                 {
@@ -1682,7 +1684,7 @@ uart_isr
         }
         default:
         {
-            ASSERT(INVALID_INTERRUPT); /*Alternative case has been considered*/
+            assert(INVALID_INTERRUPT); /*Alternative case has been considered*/
         }
         break;
     }
@@ -1699,8 +1701,8 @@ default_tx_handler
 {
     uint8_t status;
 
-    ASSERT(( (uint8_t*)0 ) != this_uart->tx_buffer);
-    ASSERT(0u < this_uart->tx_buff_size);
+    assert(( (uint8_t*)0 ) != this_uart->tx_buffer);
+    assert(0u < this_uart->tx_buff_size);
 
     if ((((uint8_t*)0 ) != this_uart->tx_buffer) &&
        (0u < this_uart->tx_buff_size))
@@ -1775,7 +1777,7 @@ enable_irq
     }
     else
     {
-        ASSERT(0); /*Alternative case has been considered*/
+        assert(0); /*Alternative case has been considered*/
     }
 
     /* Enable UART instance interrupt in PLIC. */
@@ -1812,7 +1814,7 @@ disable_irq
     }
     else
     {
-        ASSERT(0); /*Alternative case has been considered*/
+        assert(0); /*Alternative case has been considered*/
     }
 
     /* Disable UART instance interrupt in PLIC. */

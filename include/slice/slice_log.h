@@ -14,7 +14,7 @@ enum slice_log_type {
 
 void slice_debug_color(unsigned);
 
-#define slice_debug_printf(logLevel, ...) \
+#define slice_log_printf(logLevel, ...) \
   {                                       \
     if (logLevel > SLICE_DEBUG_LEVEL) {   \
       sbi_printf("%s(): ", __func__);     \
@@ -22,6 +22,6 @@ void slice_debug_color(unsigned);
     }                                     \
   }
 
-#define slice_printf(...) slice_debug_printf(SLICE_LOG_DEBUG, __VA_ARGS__)
+#define slice_printf(...) slice_log_printf(SLICE_LOG_DEBUG, __VA_ARGS__)
 
 #endif  // __SLICE_DEBUG_H

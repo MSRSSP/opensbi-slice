@@ -1,6 +1,9 @@
 #include <sbi/riscv_asm.h>
 #include <stddef.h>
-#include <common/mss_hart_ints.h>
+#include "mss_hart_ints.h"
+
+// #include <common/mss_hart_ints.h>
+
 /*------------------------------------------------------------------------------
  * Enable particular local interrupt
  */
