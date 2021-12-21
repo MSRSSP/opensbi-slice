@@ -40,6 +40,7 @@ int sbi_strncmp(const char *a, const char *b, size_t count)
 	return *a - *b;
 }
 
+size_t strlen(const char *str) __attribute__((weak, alias("sbi_strlen")));
 size_t sbi_strlen(const char *str)
 {
 	unsigned long ret = 0;

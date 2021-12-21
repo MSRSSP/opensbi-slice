@@ -1,5 +1,4 @@
 #include <sbi/riscv_atomic.h>
-#include <sbi/riscv_barrier.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_domain.h>
 #include <sbi/sbi_ecall.h>
@@ -19,18 +18,8 @@ void __gcov_exit(){
 }
 #if 1
 // In PolarFire, only selected memory regions support atomic operations.
-#define atomic_cmpxchg exchange
-#define atomic_read read
-
-long read(long *data) { return __smp_load_acquire(data); }
-
-long exchange(long *data, long current_val, long target_val) {
-  long old_val = read(data);
-  if(old_val == current_val){
-    __smp_store_release(data, target_val);
-  }
-  return old_val;
-}
+#define atomic_cmpxchg smp_exchange
+#define atomic_read smp_read
 #endif
 
 bool is_slice(const struct sbi_domain *dom) {

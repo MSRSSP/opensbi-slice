@@ -2,6 +2,7 @@
 #define __SLICE_H__
 
 #include <sbi/riscv_atomic.h>
+#include <slice/slice_log.h>
 
 /*Domain configurations stored in a protected memory region*/
 struct sbi_domain* allocate_domain();
@@ -112,6 +113,7 @@ void nonslice_sbi_init(void);
 void slice_loader(struct sbi_domain *dom, unsigned long fw_src, unsigned long fw_size);
 // A security-critical function to check overlaps among slices.
 int sanitize_slice(struct sbi_domain* new_dom);
-//#define slice_printf sbi_printf
-#define slice_printf(x, ...) {}
-#endif  // __D_H__
+
+long smp_read(long *data);
+long smp_exchange(long *data, long current_val, long target_val);
+#endif  // __SLICE_H__

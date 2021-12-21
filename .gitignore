@@ -2,10 +2,11 @@
 *.o
 *.a
 *.dep
+*.d
 
 #Build & install directories
 build/
 install/
-
+build-qemu/
 # Development friendly files
 tags
