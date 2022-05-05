@@ -405,6 +405,13 @@ static int init_slice_shared_mem(struct sbi_domain_memregion *regions,
   if (count >= DOMAIN_REGION_MAX_COUNT) {
     return SBI_ERR_FAILED;
   }
+  regions[count].base = 0xae000000;
+  regions[count].order = 25;
+  regions[count].flags = ALL_PERM_BUT_X;
+  count++;
+  if (count >= DOMAIN_REGION_MAX_COUNT) {
+    return SBI_ERR_FAILED;
+  }
   // Host memory.
   /*regions[count].base = CONFIG_SERVICE_BOOT_DDR_SLICE_0_MEM_START;
   regions[count].order = CONFIG_SERVICE_BOOT_DDR_SLICE_0_MEM_ORDER;
