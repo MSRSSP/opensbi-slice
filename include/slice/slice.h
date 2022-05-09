@@ -38,6 +38,9 @@ struct slice_config {
   unsigned long slice_sbi_start;
   unsigned long slice_sbi_size;
   unsigned long slice_start_time[MAX_HART_NUM];
+  struct{
+    unsigned char buf[48];
+  } slice_digest;
 };
 
 /*Domain configurations stored in a protected memory region*/
