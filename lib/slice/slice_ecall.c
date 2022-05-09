@@ -77,7 +77,18 @@ static int sbi_ecall_d_handler(unsigned long extid, unsigned long funcid,
 		struct sbi_hartmask mask;
 		sbi_hartmask_clear_all(&mask);
 		mask.bits[0] = regs->a0;
-		retval = slice_create(mask, regs->a1, regs->a2, 0x84000000, 0x20000000, root.next_arg1, PRV_S);
+		struct slice_options options = {
+			.hartmask   = mask,
+			.mem_start  = regs->a1,
+			.mem_size   = regs->a2,
+			.image_from = 0x84000000,
+			.image_size = 0x20000000,
+			.fdt_from   = root.next_arg1,
+			.guest_mode = PRV_S,
+			.stdout	    = "",
+			.signature  = NULL,
+		};
+		retval = slice_create_full(&options);
 		break;
 	}
 	case SBI_SLICE_INFO:

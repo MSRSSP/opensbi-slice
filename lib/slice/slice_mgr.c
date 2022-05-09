@@ -124,17 +124,6 @@ static int slice_send_ipi_to_domain(struct sbi_domain *dom,
   return 0;
 }
 
-int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
-                 unsigned long mem_size, unsigned long image_from,
-                 unsigned long image_size, unsigned long fdt_from,
-                 unsigned long mode) {
-  struct slice_options options = {cpu_mask,   mem_start, mem_size, image_from,
-                                  image_size, fdt_from,  mode,     ""};
-  sbi_memset(options.stdout, 0, SLICE_UART_PATH_LEN);
-  sbi_printf("%s:%lx\n", __func__, options.mem_start);
-  return slice_create_full(&options);
-}
-
 int slice_create_full(struct slice_options *slice_options) {
   struct sbi_domain *dom;
   int err = 0;
@@ -189,8 +178,7 @@ int slice_create_full(struct slice_options *slice_options) {
           (char*)"", slice_options->hartmask.bits[0], boot_hartid,
           slice_options->guest_mode, dom->slice_mem_start, dom->slice_mem_size);
       sbi_platform_ops(plat)->slice_register_source(
-          boot_hartid, slice_options->image_from, slice_options->image_size,
-          slice_options->fdt_from, dom->stdout_path);
+          boot_hartid, slice_options);
     }
   }
   return slice_activate(dom);

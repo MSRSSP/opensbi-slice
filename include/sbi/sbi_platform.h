@@ -127,10 +127,7 @@ struct sbi_platform_operations {
                                      unsigned long mem_start,
                                      unsigned long mem_size);
 	void (*slice_register_source)(int boot_hartid,
-                              unsigned long boot_src,
-                              size_t boot_size,
-                              unsigned long fdt_src,
-                              const char * uart_path);
+                              const void* slice_opt);
 };
 
 /** Platform default per-HART stack size for exception/interrupt handling */

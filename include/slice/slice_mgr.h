@@ -1,5 +1,6 @@
 #ifndef __SLICE_MGR_H
 #define __SLICE_MGR_H
+#include <sbi/sbi_hartmask.h>
 
 #define MAX_HART_NUM 8
 enum SliceIPIFuncId {
@@ -32,6 +33,7 @@ struct slice_bus_data {
 #define SLICE_FDT_OFFSET 0x2000000
 
 #define SLICE_STDOUT_PATH_LEN 32
+
 struct slice_options {
 	struct sbi_hartmask hartmask;
 	unsigned long mem_start;
@@ -45,10 +47,6 @@ struct slice_options {
 
 struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid);
 void slice_ipi_register();
-int slice_create(struct sbi_hartmask cpu_mask, unsigned long mem_start,
-		 unsigned long mem_size, unsigned long image_from,
-		 unsigned long image_size, unsigned long fdt_from,
-		 unsigned long mode);
 int slice_create_full(struct slice_options *slice_options);
 
 int slice_delete(int dom_index);
@@ -63,4 +61,19 @@ void slice_ipi_test(int dom_index);
 /* Slice-0 setter and getter */
 unsigned int slice_host_hartid();
 int register_host_hartid(unsigned int hartid);
+
+void slice_register_boot_hart(int boot_hartid, const void * options);
+
+// Returns the slice memory start for this hart;
+unsigned long slice_mem_start_this_hart(void);
+
+// Returns the slice memory size for this hart;
+unsigned long slice_mem_size_this_hart(void);
+
+// Whether the slice's owner hart already copied the hss-l2 to slice memory;
+bool is_slice_sbi_copy_done(void);
+void init_slice_sbi_copy_status(void);
+
+// Return True if this hart is the slice's owner hart;
+unsigned slice_owner_hart(unsigned hartid);
 #endif // __SLICE_MGR_H

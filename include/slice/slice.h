@@ -74,6 +74,8 @@ struct sbi_domain* active_slice_from_index(unsigned int index);
 /*Entry of slice loader.*/
 void slice_loader(struct sbi_domain *dom, unsigned long fw_src, unsigned long fw_size);
 
+void *slice0_alloc_private(unsigned size);
+
 /*Read/write smp data*/
 long smp_read(long *data);
 long smp_exchange(long *data, long current_val, long target_val);
