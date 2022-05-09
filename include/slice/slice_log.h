@@ -15,7 +15,6 @@ enum slice_log_type {
 #define slice_log_printf(logLevel, ...)    \
   {                                        \
     if (logLevel >= SLICE_VERBOSE_LEVEL) { \
-      sbi_printf("%s(): ", __func__);      \
       sbi_printf(__VA_ARGS__);             \
     }                                      \
   }
