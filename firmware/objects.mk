@@ -20,8 +20,8 @@ endif
 ifeq ($(FW_PIC),y)
 firmware-genflags-y +=	-DFW_PIC
 firmware-asflags-y  +=	-fpic 
-firmware-cflags-y   +=	-fPIE -pie 
-firmware-ldflags-y  +=  -Wl,--no-dynamic-linker -Wl,-pie
+firmware-cflags-y   +=	-fPIE -pie -Os -ffunction-sections -fdata-sections
+firmware-ldflags-y  +=  -Wl,--no-dynamic-linker -Wl,-pie -Wl,--gc-sections -flto
 endif
 
 ifdef FW_TEXT_START
