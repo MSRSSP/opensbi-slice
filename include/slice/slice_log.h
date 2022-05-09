@@ -21,5 +21,7 @@ enum slice_log_type {
   }
 
 #define slice_printf(...) slice_log_printf(SLICE_LOG_DEBUG, __VA_ARGS__)
-
+#define slice_info(...) slice_log_printf(SLICE_LOG_INFO, __VA_ARGS__)
+#define slice_debug(...) slice_log_printf(SLICE_LOG_DEBUG, __VA_ARGS__)
+#define slice_error(...) slice_log_printf(SLICE_LOG_ERR, __VA_ARGS__)
 #endif  // __SLICE_DEBUG_H
