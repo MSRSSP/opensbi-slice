@@ -47,7 +47,6 @@ static int slice_loader_state = 0;
 static struct sbi_hartmask root_hmask;
 #define ROOT_REGION_MAX	16
 //static  struct sbi_domain_memregion private_memregs[ROOT_REGION_MAX + 1] = { 0 };
-
 struct sbi_domain_memregion private_memregs[ROOT_REGION_MAX + 1] = { 0 };
 static void __noreturn slice_loader_finish_guest(struct sbi_scratch *private_scratch, struct sbi_domain *shared_dom) {
   struct sbi_domain *dom, private_dom;
@@ -55,7 +54,10 @@ static void __noreturn slice_loader_finish_guest(struct sbi_scratch *private_scr
   struct sbi_domain_memregion local_memregs[ROOT_REGION_MAX + 1] = { 0 };
   struct sbi_hartmask local_hmask;
   bool is_boot_hartid = (shared_dom->boot_hartid == current_hartid());
-  sbi_console_init(private_scratch);
+  //sbi_console_init(private_scratch);
+  slice_uart_init(current_hartid());
+  sbi_printf("%s: opensbi_count = %d\n", __func__, shared_dom->debug_count);
+  //if (shared_dom->debug_count <=4) {
   if(is_boot_hartid){
     dom = &root;
     //root_memregs = dom->regions;

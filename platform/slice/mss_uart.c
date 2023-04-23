@@ -1316,13 +1316,81 @@ MSS_UART_enable_local_irq
     __enable_local_irq((int8_t)MMUART0_E51_INT);
 }
 
+static void reset_uart
+(
+    mss_uart_instance_t * this_uart,
+    uint32_t baud_rate,
+    uint8_t line_config
+)
+{
+    /* disable interrupts */
+    this_uart->hw_reg->IER = 0u;
+
+    /* FIFO configuration */
+    this_uart->hw_reg->FCR = 0u;
+
+    /* clear receiver FIFO */
+    this_uart->hw_reg->FCR |= CLEAR_RX_FIFO_MASK;
+
+    /* clear transmitter FIFO */
+    this_uart->hw_reg->FCR |= CLEAR_TX_FIFO_MASK;
+
+    /* set default READY mode : Mode 0*/
+    /* enable RXRDYN and TXRDYN pins. The earlier FCR write to set the TX FIFO
+     * trigger level inadvertently disabled the FCR_RXRDY_TXRDYN_EN bit. */
+    this_uart->hw_reg->FCR |= RXRDY_TXRDYN_EN_MASK;
+
+    /* disable loopback : local * remote */
+    this_uart->hw_reg->MCR &= ~LOOP_MASK;
+
+    this_uart->hw_reg->MCR &= ~RLOOP_MASK;
+
+    /* set default TX endian */
+    this_uart->hw_reg->MM1 &= ~E_MSB_TX_MASK;
+
+    /* set default RX endian */
+    this_uart->hw_reg->MM1 &= ~E_MSB_RX_MASK;
+
+    /* default AFM : disabled */
+    this_uart->hw_reg->MM2 &= ~EAFM_MASK;
+
+    /* disable TX time guard */
+    this_uart->hw_reg->MM0 &= ~ETTG_MASK;
+
+    /* set default RX timeout */
+    this_uart->hw_reg->MM0 &= ~ERTO_MASK;
+
+    /* disable fractional baud-rate */
+    this_uart->hw_reg->MM0 &= ~EFBR_MASK;
+
+    /* disable single wire mode */
+    this_uart->hw_reg->MM2 &= ~ESWM_MASK;
+
+    /* set filter to minimum value */
+    this_uart->hw_reg->GFR = 0u;
+
+    /* set default TX time guard */
+    this_uart->hw_reg->TTG = 0u;
+
+    /* set default RX timeout */
+    this_uart->hw_reg->RTO = 0u;
+
+    this_uart->hw_reg->LCR = line_config;
+
+    /*
+     * Configure baud rate divisors. This uses the fractional baud rate divisor
+     * where possible to provide the most accurate baud rat possible.
+     */
+    config_baud_divisors(this_uart, baud_rate);
+}
+
 /*******************************************************************************
  * Local Functions
  *******************************************************************************/
 /*******************************************************************************
  * Global initialization for all modes
  */
-static void global_init
+void define_uart
 (
     mss_uart_instance_t * this_uart,
     uint32_t baud_rate,
@@ -1394,67 +1462,6 @@ static void global_init
         assert(0); /*Comment to avoid LDRA warning*/
     }
 
-    /* disable interrupts */
-    this_uart->hw_reg->IER = 0u;
-
-    /* FIFO configuration */
-    this_uart->hw_reg->FCR = 0u;
-
-    /* clear receiver FIFO */
-    this_uart->hw_reg->FCR |= CLEAR_RX_FIFO_MASK;
-
-    /* clear transmitter FIFO */
-    this_uart->hw_reg->FCR |= CLEAR_TX_FIFO_MASK;
-
-    /* set default READY mode : Mode 0*/
-    /* enable RXRDYN and TXRDYN pins. The earlier FCR write to set the TX FIFO
-     * trigger level inadvertently disabled the FCR_RXRDY_TXRDYN_EN bit. */
-    this_uart->hw_reg->FCR |= RXRDY_TXRDYN_EN_MASK;
-
-    /* disable loopback : local * remote */
-    this_uart->hw_reg->MCR &= ~LOOP_MASK;
-
-    this_uart->hw_reg->MCR &= ~RLOOP_MASK;
-
-    /* set default TX endian */
-    this_uart->hw_reg->MM1 &= ~E_MSB_TX_MASK;
-
-    /* set default RX endian */
-    this_uart->hw_reg->MM1 &= ~E_MSB_RX_MASK;
-
-    /* default AFM : disabled */
-    this_uart->hw_reg->MM2 &= ~EAFM_MASK;
-
-    /* disable TX time guard */
-    this_uart->hw_reg->MM0 &= ~ETTG_MASK;
-
-    /* set default RX timeout */
-    this_uart->hw_reg->MM0 &= ~ERTO_MASK;
-
-    /* disable fractional baud-rate */
-    this_uart->hw_reg->MM0 &= ~EFBR_MASK;
-
-    /* disable single wire mode */
-    this_uart->hw_reg->MM2 &= ~ESWM_MASK;
-
-    /* set filter to minimum value */
-    this_uart->hw_reg->GFR = 0u;
-
-    /* set default TX time guard */
-    this_uart->hw_reg->TTG = 0u;
-
-    /* set default RX timeout */
-    this_uart->hw_reg->RTO = 0u;
-
-    /*
-     * Configure baud rate divisors. This uses the fractional baud rate divisor
-     * where possible to provide the most accurate baud rat possible.
-     */
-    config_baud_divisors(this_uart, baud_rate);
-
-    /* set the line control register (bit length, stop bits, parity) */
-    this_uart->hw_reg->LCR = line_config;
-
     /* Instance setup */
     this_uart->baudrate = baud_rate;
     this_uart->lineconfig = line_config;
@@ -1475,6 +1482,17 @@ static void global_init
 
     /* Initialize the sticky status */
     this_uart->status = 0u;
+}
+
+static void global_init
+(
+    mss_uart_instance_t * this_uart,
+    uint32_t baud_rate,
+    uint8_t line_config
+)
+{
+    define_uart(this_uart, baud_rate, line_config);
+    reset_uart(this_uart, baud_rate, line_config);
 }
 
 /***************************************************************************//**

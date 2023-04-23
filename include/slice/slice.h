@@ -38,6 +38,7 @@ struct slice_config {
   unsigned long slice_sbi_start;
   unsigned long slice_sbi_size;
   unsigned long slice_start_time[MAX_HART_NUM];
+  u32 debug_count;
   struct{
     unsigned char buf[48];
   } slice_digest;
@@ -82,6 +83,8 @@ void *slice0_alloc_private(unsigned size);
 /*Read/write smp data*/
 long smp_read(long *data);
 long smp_exchange(long *data, long current_val, long target_val);
+
+bool slice_uart_init(u32 hartid);
 
 #define report_time(end_time, label) {\
   sbi_printf("%s: %s: hart %d: #ticks : %lu\n",\

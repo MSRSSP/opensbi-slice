@@ -228,7 +228,7 @@ static void wake_coldboot_harts(struct sbi_scratch *scratch, u32 hartid)
 extern unsigned long init_count_offset;
 extern unsigned long loader_to_untrusted_time[5];
 extern unsigned long private_mem_time[5];
-static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
+static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid, bool slice_init)
 {
 	int rc;
 	unsigned long *init_count;
@@ -260,9 +260,13 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 	if (rc)
 		sbi_hart_hang();
 
-	rc = sbi_console_init(scratch);
-	if (rc)
-		sbi_hart_hang();
+	if(slice_init) {
+		slice_uart_init(hartid);
+	} else {
+		rc = sbi_console_init(scratch);
+		if (rc)
+			sbi_hart_hang();
+	}
 
 	sbi_boot_print_banner(scratch);
 	rc = sbi_platform_irqchip_init(plat, TRUE);
@@ -533,7 +537,7 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 		coldboot = TRUE;
 
 	if (coldboot)
-		init_coldboot(scratch, hartid);
+		init_coldboot(scratch, hartid, false);
 	else
 		init_warmboot(scratch, hartid);
 }
@@ -576,7 +580,7 @@ void __noreturn sbi_slice_init(struct sbi_scratch *scratch, bool coldboot)
 	 */
 
 	if (coldboot && next_mode_supported)
-		init_coldboot(scratch, hartid);
+		init_coldboot(scratch, hartid, true);
 	else
 		init_warmboot(scratch, hartid);
 }

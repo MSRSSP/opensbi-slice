@@ -231,3 +231,33 @@ bool HSS_UARTInit(void) {
       MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT);
   return true;
 }
+
+#define MSS_UART0_LO_BASE           0x20000000UL
+#define MSS_UART1_LO_BASE           0x20100000UL
+#define MSS_UART2_LO_BASE           0x20102000UL
+#define MSS_UART3_LO_BASE           0x20104000UL
+#define MSS_UART4_LO_BASE           0x20106000UL
+#define NULL_HANDLER                    ((mss_uart_irq_handler_t) 0)
+
+void slice_uart_init(u32 hartid) {
+  mss_uart_instance_t * this_uart = get_uart_instance(hartid);
+  uint32_t baud_rate = MSS_UART_115200_BAUD;
+  uint8_t line_config = MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT;
+  define_uart(this_uart, baud_rate, line_config);
+  switch (hartid) {
+    default:
+      this_uart->hw_reg = (MSS_UART_TypeDef*)MSS_UART0_LO_BASE;
+      break;
+    case HSS_HART_E51:
+      this_uart->hw_reg = (MSS_UART_TypeDef*)MSS_UART0_LO_BASE;
+      break;
+    case HSS_HART_U54_1:
+    case HSS_HART_U54_2:
+      this_uart->hw_reg = (MSS_UART_TypeDef*)MSS_UART2_LO_BASE;
+      break;
+    case HSS_HART_U54_3:
+    case HSS_HART_U54_4:
+      this_uart->hw_reg = (MSS_UART_TypeDef*)MSS_UART1_LO_BASE;
+      break;
+  }
+}

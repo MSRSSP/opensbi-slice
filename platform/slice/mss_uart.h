@@ -827,6 +827,13 @@ extern mss_uart_instance_t g_mss_uart3_hi;
 extern mss_uart_instance_t g_mss_uart4_hi;
 
 
+void define_uart
+(
+    mss_uart_instance_t * this_uart,
+    uint32_t baud_rate,
+    uint8_t line_config
+);
+
 /***************************************************************************//**
   The MSS_UART_init() function initializes and configures one of the PolarFire SoC
   MSS UARTs with the configuration passed as a parameter. The configuration
