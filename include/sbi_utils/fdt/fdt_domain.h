@@ -15,7 +15,7 @@
 
 struct sbi_domain;
 
-#define FDT_DOMAIN_MAX_COUNT		4
+#define FDT_DOMAIN_MAX_COUNT		8
 #define FDT_DOMAIN_REGION_MAX_COUNT	8
 
 /**

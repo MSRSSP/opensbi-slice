@@ -22,7 +22,6 @@
 
 struct sbi_domain *hartid_to_domain_table[SBI_HARTMASK_MAX_BITS] = { 0 };
 struct sbi_domain *domidx_to_domain_table[SBI_DOMAIN_MAX_INDEX] = { 0 };
-static u32 domain_count = 0;
 static bool domain_finalized = false;
 
 static struct sbi_hartmask root_hmask = { 0 };
@@ -398,7 +397,8 @@ void sbi_domain_dump_all(const char *suffix)
 }
 
 int sbi_domain_register(struct sbi_domain *dom,
-			const struct sbi_hartmask *assign_mask)
+			const struct sbi_hartmask *assign_mask,
+			u32 dom_id)
 {
 	u32 i;
 	int rc;
@@ -420,7 +420,7 @@ int sbi_domain_register(struct sbi_domain *dom,
 	 * Ensure that we have room for Domain Index to
 	 * HART ID mapping
 	 */
-	if (SBI_DOMAIN_MAX_INDEX <= domain_count) {
+	if (SBI_DOMAIN_MAX_INDEX <= dom_id) {
 		sbi_printf("%s: No room for %s\n",
 			   __func__, dom->name);
 		return SBI_ENOSPC;
@@ -436,7 +436,7 @@ int sbi_domain_register(struct sbi_domain *dom,
 	}
 
 	/* Assign index to domain */
-	dom->index = domain_count++;
+	dom->index = dom_id;
 	domidx_to_domain_table[dom->index] = dom;
 
 	/* Clear assigned HARTs of domain */
@@ -630,5 +630,6 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
 		sbi_hartmask_set_hart(i, &root_hmask);
 	}
 
-	return sbi_domain_register(&root, &root_hmask);
+	sbi_printf("%s:%d\n", __func__, __LINE__);
+	return sbi_domain_register(&root, &root_hmask, 0);
 }

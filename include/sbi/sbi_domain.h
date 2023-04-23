@@ -169,7 +169,7 @@ void sbi_domain_dump_all(const char *suffix);
  * @return 0 on success and negative error code on failure
  */
 int sbi_domain_register(struct sbi_domain *dom,
-			const struct sbi_hartmask *assign_mask);
+			const struct sbi_hartmask *assign_mask, u32 id);
 
 /**
  * Add a memory region to the root domain

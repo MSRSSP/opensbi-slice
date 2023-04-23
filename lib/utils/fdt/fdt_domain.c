@@ -217,11 +217,16 @@ skip_device_disable:
 	fdt_nop_node(fdt, poffset);
 }
 
-extern u32 fdt_domains_count;
+extern u32 current_dom_id;
 extern struct sbi_domain fdt_domains[FDT_DOMAIN_MAX_COUNT];
 extern struct sbi_hartmask fdt_masks[FDT_DOMAIN_MAX_COUNT];
 extern struct sbi_domain_memregion
 	fdt_regions[FDT_DOMAIN_MAX_COUNT][FDT_DOMAIN_REGION_MAX_COUNT + 1];
+
+struct fdt_parse_param {
+	u32 region_count;
+	u32 dom_id;
+};
 
 static int __fdt_parse_region(void *fdt, int domain_offset,
 			      int region_offset, u32 region_access,
@@ -231,13 +236,13 @@ static int __fdt_parse_region(void *fdt, int domain_offset,
 	u32 val32;
 	u64 val64;
 	const u32 *val;
-	u32 *region_count = opaque;
+	struct fdt_parse_param * fdt_parse_p = opaque;
 	struct sbi_domain_memregion *region;
 
 	/* Find next region of the domain */
-	if (FDT_DOMAIN_REGION_MAX_COUNT <= *region_count)
+	if (FDT_DOMAIN_REGION_MAX_COUNT <= fdt_parse_p->region_count)
 		return SBI_EINVAL;
-	region = &fdt_regions[fdt_domains_count][*region_count];
+	region = &fdt_regions[fdt_parse_p->dom_id][fdt_parse_p->region_count];
 
 	/* Read "base" DT property */
 	val = fdt_getprop(fdt, region_offset, "base", &len);
@@ -261,7 +266,7 @@ static int __fdt_parse_region(void *fdt, int domain_offset,
 	if (fdt_get_property(fdt, region_offset, "mmio", NULL))
 		region->flags |= SBI_DOMAIN_MEMREGION_MMIO;
 
-	(*region_count)++;
+	fdt_parse_p->region_count++;
 
 	return 0;
 }
@@ -277,13 +282,13 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 	int *cold_domain_offset = opaque;
 	struct sbi_domain_memregion *reg, *regions;
 	int i, err, len, cpus_offset, cpu_offset, doffset;
-
+	u32 dom_id = current_dom_id;
 	/* Sanity check on maximum domains we can handle */
-	if (FDT_DOMAIN_MAX_COUNT <= fdt_domains_count)
+	if (FDT_DOMAIN_MAX_COUNT <= dom_id)
 		return SBI_EINVAL;
-	dom = &fdt_domains[fdt_domains_count];
-	mask = &fdt_masks[fdt_domains_count];
-	regions = &fdt_regions[fdt_domains_count][0];
+	dom = &fdt_domains[dom_id];
+	mask = &fdt_masks[dom_id];
+	regions = &fdt_regions[dom_id][0];
 
 	/* Read DT node name */
 	strncpy(dom->name, fdt_get_name(fdt, domain_offset, NULL),
@@ -311,12 +316,15 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 	}
 
 	/* Setup memregions from DT */
-	val32 = 0;
 	memset(regions, 0,
 		   sizeof(*regions) * (FDT_DOMAIN_REGION_MAX_COUNT + 1));
 	dom->regions = regions;
-	err = fdt_iterate_each_memregion(fdt, domain_offset, &val32,
+	struct fdt_parse_param fdt_param;
+	fdt_param.region_count = 0;
+	fdt_param.dom_id = dom_id;
+	err = fdt_iterate_each_memregion(fdt, domain_offset, &fdt_param,
 					 __fdt_parse_region);
+	val32 = fdt_param.region_count;
 	if (err)
 		return err;
 
@@ -451,11 +459,9 @@ static int __fdt_parse_domain(void *fdt, int domain_offset, void *opaque)
 			sbi_hartmask_set_hart(val32, &assign_mask);
 	}
 
-	/* Increment domains count */
-	fdt_domains_count++;
-
 	/* Register the domain */
-	return sbi_domain_register(dom, &assign_mask);
+	sbi_printf("%s:%d\n", __func__, __LINE__);
+	return sbi_domain_register(dom, &assign_mask, dom_id);
 }
 
 int fdt_domains_populate(void *fdt)

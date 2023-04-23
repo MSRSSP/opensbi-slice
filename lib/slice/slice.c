@@ -44,19 +44,21 @@ struct sbi_domain *active_slice_from_index(unsigned int dom_index) {
 }
 
 void *slice_allocate_domain(struct sbi_hartmask *input_mask) {
-  if (read_domain_counter() >= FDT_DOMAIN_MAX_COUNT) {
+  u32 id = allocate_domain_id();
+  if (id == -1) {
+    slice_log_printf(SLICE_LOG_INFO, "Exceeds maximum slice size\n");
     return 0;
   }
-  struct sbi_hartmask *mask = allocate_hartmask();
-  struct sbi_domain *dom = allocate_domain();
-  struct sbi_domain_memregion *regions = allocate_memregion();
+  struct sbi_hartmask *mask = allocate_hartmask(id);
+  struct sbi_domain *dom = allocate_domain(id);
+  struct sbi_domain_memregion *regions = allocate_memregion(id);
   SBI_HARTMASK_INIT(mask);
   sbi_memcpy(mask, input_mask, sizeof(*mask));
   sbi_memset(regions, 0, sizeof(*regions) * (FDT_DOMAIN_REGION_MAX_COUNT + 1));
   dom->regions = regions;
   dom->possible_harts = mask;
   dom->slice_type = SLICE_TYPE_SLICE;
-  inc_domain_counter();
+  dom->index  = id + 1;
   return dom;
 }
 

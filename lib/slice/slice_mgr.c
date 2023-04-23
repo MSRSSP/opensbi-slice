@@ -167,7 +167,8 @@ int slice_create_full(struct slice_options *slice_options) {
     dump_slice_config(dom);
     return err;
   }
-  err = sbi_domain_register(dom, dom->possible_harts);
+  sbi_printf("%s:%d\n", __func__, __LINE__);
+  err = sbi_domain_register(dom, dom->possible_harts, dom->index);
   if (err) {
     return err;
   }
