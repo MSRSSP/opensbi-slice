@@ -15,6 +15,32 @@
 #include <slice/slice_pmp.h>
 #include <slice/slice_reset.h>
 
+static void slice_dealloc(struct sbi_domain *dom) {
+  struct sbi_domain_memregion *region;
+  unsigned index = dom->index;
+  // Start to delete the slice.
+  for (unsigned int hart_id = 0; hart_id < MAX_HART_NUM; ++hart_id) {
+    if (hartid_to_domain_table[hart_id] == dom) {
+      hartid_to_domain_table[hart_id] = &root;
+      // sbi_hartmask_set_hart(hart_id, &free_harts);
+    }
+  }
+  sbi_domain_for_each_memregion(dom, region) {
+    sbi_memset(region, 0, sizeof(*region));
+  }
+  SBI_HARTMASK_INIT(dom->possible_harts);
+  sbi_memset(dom, 0, sizeof(*dom));
+  sbi_index_to_domain(index) = NULL;
+  sbi_printf("%s: slice %d has been deleted\n", __func__, index);
+}
+
+static void slice_remove_if_frozen(struct sbi_domain *dom) {
+  if (!slice_deactivate(dom)) {
+    // Start to delete the slice.
+    slice_dealloc(dom);
+  }
+}
+
 struct sbi_ipi_data {
   unsigned long ipi_type;
   struct SliceIPIData slice_data[MAX_HART_NUM];
@@ -150,13 +176,15 @@ int slice_create_full(struct slice_options *slice_options) {
  // dump_slice_config(dom);
   err = sanitize_slice(dom);
   if (err) {
-    sbi_printf("%s: Cannot create an slice. err = %d\n", __func__, err);
+    sbi_printf("%s: Cannot create a new slice. err = %d\n", __func__, err);
     dump_slice_config(dom);
+    slice_dealloc(dom);
     return err;
   }
   sbi_printf("%s:%d\n", __func__, __LINE__);
   err = sbi_domain_register(dom, dom->possible_harts, dom->index);
   if (err) {
+    slice_dealloc(dom);
     return err;
   }
   if (current_hartid() == slice_host_hartid()) {
@@ -207,30 +235,6 @@ int slice_delete(int dom_index) {
       "resource.",
       __func__, dom_index);
   return 0;
-}
-
-static void slice_remove_if_frozen(struct sbi_domain *dom) {
-  struct sbi_domain_memregion *region;
-  unsigned index = dom->index;
-  if (!slice_deactivate(dom)) {
-    // Start to delete the slice.
-    for (unsigned int hart_id = 0; hart_id < MAX_HART_NUM; ++hart_id) {
-      if (hartid_to_domain_table[hart_id] == dom) {
-        hartid_to_domain_table[hart_id] = &root;
-        // sbi_hartmask_set_hart(hart_id, &free_harts);
-      }
-    }
-    sbi_domain_for_each_memregion(dom, region) {
-      sbi_memset(region, 0, sizeof(*region));
-    }
-    SBI_HARTMASK_INIT(dom->possible_harts);
-    sbi_memset(dom, 0, sizeof(*dom));
-    sbi_index_to_domain(index) = NULL;
-    sbi_printf("%s: slice %d has been deleted\n", __func__, index);
-    // Move free harts to root domain (slice-host);
-    // sbi_hartmask_or(&root.assigned_harts, &root.assigned_harts,
-    //		&free_harts);
-  }
 }
 
 int slice_stop(int dom_index) {
