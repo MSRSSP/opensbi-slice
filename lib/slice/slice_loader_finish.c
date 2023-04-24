@@ -56,8 +56,6 @@ static void __noreturn slice_loader_finish_guest(struct sbi_scratch *private_scr
   bool is_boot_hartid = (shared_dom->boot_hartid == current_hartid());
   //sbi_console_init(private_scratch);
   slice_uart_init(current_hartid());
-  sbi_printf("%s: opensbi_count = %d\n", __func__, shared_dom->debug_count);
-  //if (shared_dom->debug_count <=4) {
   if(is_boot_hartid){
     dom = &root;
     //root_memregs = dom->regions;
