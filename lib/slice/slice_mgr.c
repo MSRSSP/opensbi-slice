@@ -21,20 +21,6 @@ struct sbi_ipi_data {
 };
 
 struct sbi_ipi_data *slice_ipi_data_ptr(u32 hartid) {
-  /*const struct sbi_domain *dom = sbi_hartid_to_domain(hartid);
-  // TBD: Use a special memory that is accessible by slice-0 and this slice.
-  // This special memory is located in a slice-0 memory and is shared with
-  // slice-k by adding whitelist PMP rule when slice-k starts
-  if (dom == NULL) {
-    sbi_printf("%s: NULL dom\n", __func__);
-    sbi_hart_hang();
-  }*/
-  /*
-  unsigned long ptr = (unsigned long)dom->slice_mem_start +
-                      SLICE_IPI_DATA_OFFSET +
-                      sizeof(struct sbi_ipi_data) * hartid;
-  return (struct sbi_ipi_data *)ptr;
-  */
   struct slice_bus_data *bus = (struct slice_bus_data *)SLICE0_BUS_MEMORY;
   return (struct sbi_ipi_data *)&bus->slice_buses[hartid];
 }
@@ -43,6 +29,7 @@ struct SliceIPIData *slice_ipi_slice_data(u32 src, u32 dst) {
   return &slice_ipi_data_ptr(dst)->slice_data[src];
 }
 
+/* software-base reset*/
 static void __attribute__((noreturn))
 slice_jump_to_sw_reset(unsigned long next_addr) {
 #if __riscv_xlen == 32
@@ -236,13 +223,16 @@ static void slice_remove_if_frozen(struct sbi_domain *dom) {
     sbi_domain_for_each_memregion(dom, region) {
       sbi_memset(region, 0, sizeof(*region));
     }
+    SBI_HARTMASK_INIT(dom->possible_harts);
     sbi_memset(dom, 0, sizeof(*dom));
-    sbi_printf("%s: slice %d is deleted.", __func__, index);
+    sbi_index_to_domain(index) = NULL;
+    sbi_printf("%s: slice %d has been deleted\n", __func__, index);
     // Move free harts to root domain (slice-host);
     // sbi_hartmask_or(&root.assigned_harts, &root.assigned_harts,
     //		&free_harts);
   }
 }
+
 int slice_stop(int dom_index) {
   if (current_hartid() != slice_host_hartid()) {
     // should never reach here.

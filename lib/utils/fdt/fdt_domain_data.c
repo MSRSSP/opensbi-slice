@@ -37,9 +37,9 @@ u32 fdt_domains_count(void){
 u32 allocate_domain_id(void) {
 	u32 i = 0;
 	for (i=0; i < FDT_DOMAIN_MAX_COUNT; ++i ) {
-		if (hart_count(&fdt_masks[i]) == 0) {
+		if (fdt_domains[i].possible_harts == NULL) {
 			current_dom_id = i;
-			 slice_log_printf(SLICE_LOG_INFO, "%s: domid = %d\n", __func__, i);
+			slice_log_printf(SLICE_LOG_INFO, "%s: new domid = %d\n", __func__, i);
 			return i;
 		}
 	}
