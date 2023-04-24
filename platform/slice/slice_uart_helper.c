@@ -239,11 +239,10 @@ bool HSS_UARTInit(void) {
 #define MSS_UART4_LO_BASE           0x20106000UL
 #define NULL_HANDLER                    ((mss_uart_irq_handler_t) 0)
 
-void slice_uart_init(u32 hartid) {
+void slice_uart_init(uint32_t hartid) {
   mss_uart_instance_t * this_uart = get_uart_instance(hartid);
   uint32_t baud_rate = MSS_UART_115200_BAUD;
   uint8_t line_config = MSS_UART_DATA_8_BITS | MSS_UART_NO_PARITY | MSS_UART_ONE_STOP_BIT;
-  define_uart(this_uart, baud_rate, line_config);
   switch (hartid) {
     default:
       this_uart->hw_reg = (MSS_UART_TypeDef*)MSS_UART0_LO_BASE;
@@ -260,4 +259,24 @@ void slice_uart_init(u32 hartid) {
       this_uart->hw_reg = (MSS_UART_TypeDef*)MSS_UART1_LO_BASE;
       break;
   }
+  /* Instance setup */
+  this_uart->baudrate = baud_rate;
+  this_uart->lineconfig = line_config;
+  this_uart->tx_buff_size = 0;
+  this_uart->tx_buffer = (const uint8_t*)0;
+  this_uart->tx_idx = 0u;
+
+  /* Default handlers for MSS UART interrupts */
+  this_uart->rx_handler       = NULL_HANDLER;
+  this_uart->tx_handler       = NULL_HANDLER;
+  this_uart->linests_handler  = NULL_HANDLER;
+  this_uart->modemsts_handler = NULL_HANDLER;
+  this_uart->rto_handler      = NULL_HANDLER;
+  this_uart->nack_handler     = NULL_HANDLER;
+  this_uart->pid_pei_handler  = NULL_HANDLER;
+  this_uart->break_handler    = NULL_HANDLER;
+  this_uart->sync_handler     = NULL_HANDLER;
+
+  /* Initialize the sticky status */
+  this_uart->status = 0u;
 }

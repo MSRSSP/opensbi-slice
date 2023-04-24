@@ -84,7 +84,7 @@ void *slice0_alloc_private(unsigned size);
 long smp_read(long *data);
 long smp_exchange(long *data, long current_val, long target_val);
 
-bool slice_uart_init(u32 hartid);
+bool slice_uart_init(uint32_t hartid);
 
 #define report_time(end_time, label) {\
   sbi_printf("%s: %s: hart %d: #ticks : %lu\n",\
