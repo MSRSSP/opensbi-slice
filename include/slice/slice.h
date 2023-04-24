@@ -44,6 +44,7 @@ struct slice_config {
 };
 
 /*Domain configurations stored in a protected memory region*/
+u32 allocate_domain_id(void);
 struct sbi_domain* allocate_domain();
 struct sbi_hartmask* allocate_hartmask();
 struct sbi_domain_memregion* allocate_memregion();

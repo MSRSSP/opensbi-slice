@@ -28,7 +28,6 @@ static void slice_dealloc(struct sbi_domain *dom) {
   sbi_domain_for_each_memregion(dom, region) {
     sbi_memset(region, 0, sizeof(*region));
   }
-  SBI_HARTMASK_INIT(dom->possible_harts);
   sbi_memset(dom, 0, sizeof(*dom));
   sbi_index_to_domain(index) = NULL;
   sbi_printf("%s: slice %d has been deleted\n", __func__, index);
