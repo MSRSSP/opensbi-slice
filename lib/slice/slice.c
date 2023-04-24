@@ -138,7 +138,7 @@ void dump_slice_config(const struct sbi_domain *dom) {
                    dom->index, (unsigned long)dom->next_boot_size);
   slice_log_printf(
       SLICE_LOG_INFO,
-      "slice %d: guest_kernel_start= 0x%lx (copy from guest_kernel_src)\n",
+      "slice %d: slice_kernel_start= 0x%lx (copy from guest_kernel_src)\n",
       dom->index, dom->next_addr);
   slice_log_printf(SLICE_LOG_INFO,
                    "slice %d: guest_fdt_src     = 0x%lx (loaded by slice-0)\n",
