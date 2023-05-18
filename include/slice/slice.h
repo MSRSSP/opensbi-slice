@@ -51,6 +51,7 @@ struct sbi_domain_memregion* allocate_memregion();
 void inc_domain_counter();
 unsigned read_domain_counter();
 
+u32 allocate_domain_id(void);
 /* Allocate a domain config*/
 void* slice_allocate_domain();
 
